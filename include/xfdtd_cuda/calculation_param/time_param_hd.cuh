@@ -1,23 +1,35 @@
 #ifndef __XFDTD_CUDA_TIME_PARAM_HD_CUH__
 #define __XFDTD_CUDA_TIME_PARAM_HD_CUH__
 
-#include <xfdtd_cuda/calculation_param/time_param.cuh>
-#include <xfdtd_cuda/host_device_carrier.cuh>
-
 #include <xfdtd/calculation_param/time_param.h>
 #include <xfdtd/common/type_define.h>
+
+#include <xfdtd_cuda/calculation_param/time_param.cuh>
+#include <xfdtd_cuda/host_device_carrier.cuh>
 #include <xfdtd_cuda/tensor_hd.cuh>
 
 namespace xfdtd::cuda {
 class TimeParamHD
     : public HostDeviceCarrier<xfdtd::TimeParam, xfdtd::cuda::TimeParam> {
-public:
+ public:
   using Host = xfdtd::TimeParam;
   using Device = xfdtd::cuda::TimeParam;
 
-public:
+ public:
   using HostDeviceCarrier<xfdtd::TimeParam,
                           xfdtd::cuda::TimeParam>::HostDeviceCarrier;
+
+  TimeParamHD(TimeParamHD &&other) noexcept
+      : HostDeviceCarrier<xfdtd::TimeParam, xfdtd::cuda::TimeParam>{
+            std::move(other)} {}
+
+  auto operator=(TimeParamHD &&other) noexcept -> TimeParamHD & {
+    if (this != &other) {
+      HostDeviceCarrier<xfdtd::TimeParam, xfdtd::cuda::TimeParam>::operator=(
+          std::move(other));
+    }
+    return *this;
+  }
 
   ~TimeParamHD() override { releaseDevice(); }
 
@@ -53,12 +65,13 @@ XFDTD_CUDA_GLOBAL auto __kernelCheckTimeParam(TimeParam *time_param) -> void {
     return;
   }
 
-  printf("TimeParam: dt=%.5e, start_time_step=%lu, size=%lu, "
-         "current_time_step=%lu, "
-         "end_time_step=%lu, remaining_time_step=%lu\n",
-         time_param->dt(), time_param->startTimeStep(), time_param->size(),
-         time_param->currentTimeStep(), time_param->endTimeStep(),
-         time_param->remainingTimeStep());
+  printf(
+      "TimeParam: dt=%.5e, start_time_step=%lu, size=%lu, "
+      "current_time_step=%lu, "
+      "end_time_step=%lu, remaining_time_step=%lu\n",
+      time_param->dt(), time_param->startTimeStep(), time_param->size(),
+      time_param->currentTimeStep(), time_param->endTimeStep(),
+      time_param->remainingTimeStep());
 
   auto e_time = time_param->eTime();
   auto h_time = time_param->hTime();
@@ -68,13 +81,14 @@ XFDTD_CUDA_GLOBAL auto __kernelCheckTimeParam(TimeParam *time_param) -> void {
 
   time_param->nextStep();
 
-  printf("TimeParam: dt=%.5e, start_time_step=%lu, size=%lu, "
-         "current_time_step=%lu, "
-         "end_time_step=%lu, remaining_time_step=%lu\n",
-         time_param->dt(), time_param->startTimeStep(), time_param->size(),
-         time_param->currentTimeStep(), time_param->endTimeStep(),
-         time_param->remainingTimeStep());
+  printf(
+      "TimeParam: dt=%.5e, start_time_step=%lu, size=%lu, "
+      "current_time_step=%lu, "
+      "end_time_step=%lu, remaining_time_step=%lu\n",
+      time_param->dt(), time_param->startTimeStep(), time_param->size(),
+      time_param->currentTimeStep(), time_param->endTimeStep(),
+      time_param->remainingTimeStep());
 }
-} // namespace xfdtd::cuda
+}  // namespace xfdtd::cuda
 
-#endif // __XFDTD_CUDA_TIME_PARAM_HD_CUH__
+#endif  // __XFDTD_CUDA_TIME_PARAM_HD_CUH__
