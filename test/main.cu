@@ -4,6 +4,7 @@
 #include <limits>
 #include <memory>
 #include <xfdtd_cuda/calculation_param/calculation_param_hd.cuh>
+#include <xfdtd_cuda/electromagnetic_field/electromagnetic_field.cuh>
 #include <xfdtd_cuda/grid_space/grid_space.cuh>
 
 #include "xfdtd/common/constant.h"
@@ -97,20 +98,21 @@ void cylinderScatter2D() {
   //   f_hd.copyDeviceToHost();
   // }
 
-  {
-    auto c = s.calculationParam().get();
-    auto c_hd = xfdtd::cuda::CalculationParamHD{c};
-    c_hd.copyHostToDevice();
-    xfdtd::cuda::__kernelCheckTimeParam<<<1, 1>>>(c_hd.timeParamHD().device());
-    cudaDeviceSynchronize();
-    xfdtd::cuda::__kernelCheckFDTDUpdateCoefficient<<<1, 1>>>(
-        c_hd.fdtdCoefficientHD().device());
-    cudaDeviceSynchronize();
-    c_hd.copyDeviceToHost();
-    printf("TimeParam::dt=%.5e\n", c->timeParam()->dt());
-    printf("start_time_step:%lu, current_time_step:%lu\n",
-           c->timeParam()->startTimeStep(), c->timeParam()->currentTimeStep());
-  }
+  // {
+  //   auto c = s.calculationParam().get();
+  //   auto c_hd = xfdtd::cuda::CalculationParamHD{c};
+  //   c_hd.copyHostToDevice();
+  //   xfdtd::cuda::__kernelCheckTimeParam<<<1,
+  //   1>>>(c_hd.timeParamHD().device()); cudaDeviceSynchronize();
+  //   xfdtd::cuda::__kernelCheckFDTDUpdateCoefficient<<<1, 1>>>(
+  //       c_hd.fdtdCoefficientHD().device());
+  //   cudaDeviceSynchronize();
+  //   c_hd.copyDeviceToHost();
+  //   printf("TimeParam::dt=%.5e\n", c->timeParam()->dt());
+  //   printf("start_time_step:%lu, current_time_step:%lu\n",
+  //          c->timeParam()->startTimeStep(),
+  //          c->timeParam()->currentTimeStep());
+  // }
 }
 
 int main(int argc, char *argv[]) {
