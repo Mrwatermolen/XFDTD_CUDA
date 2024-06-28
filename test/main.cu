@@ -5,7 +5,9 @@
 #include <memory>
 #include <xfdtd_cuda/calculation_param/calculation_param_hd.cuh>
 #include <xfdtd_cuda/electromagnetic_field/electromagnetic_field.cuh>
+#include <xfdtd_cuda/electromagnetic_field/electromagnetic_field_hd.cuh>
 #include <xfdtd_cuda/grid_space/grid_space.cuh>
+#include <xfdtd_cuda/grid_space/grid_space_hd.cuh>
 
 #include "xfdtd/common/constant.h"
 #include "xfdtd/coordinate_system/coordinate_system.h"
@@ -112,6 +114,14 @@ void cylinderScatter2D() {
   //   printf("start_time_step:%lu, current_time_step:%lu\n",
   //          c->timeParam()->startTimeStep(),
   //          c->timeParam()->currentTimeStep());
+  // }
+
+  // {
+  //   auto g = s.gridSpace().get();
+  //   auto g_hd = xfdtd::cuda::GridSpaceHD{g};
+  //   g_hd.copyHostToDevice();
+  //   xfdtd::cuda::__kenerlCheckGridSpace<<<1, 1>>>(g_hd.device());
+  //   cudaDeviceSynchronize();
   // }
 }
 

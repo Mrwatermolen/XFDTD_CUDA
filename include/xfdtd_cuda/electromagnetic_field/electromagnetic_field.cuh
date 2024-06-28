@@ -29,6 +29,8 @@ class EMF {
 
   template <xfdtd::EMF::Field f>
   XFDTD_CUDA_DUAL auto field() const -> const Array3D<Real>& {
+    static_assert(f != xfdtd::EMF::Field::EM && f != xfdtd::EMF::Field::HM,
+                  "No Implementation");
     if constexpr (f == xfdtd::EMF::Field::EX) {
       return ex();
     } else if constexpr (f == xfdtd::EMF::Field::EY) {

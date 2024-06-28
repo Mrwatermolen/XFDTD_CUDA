@@ -7,8 +7,6 @@
 #include <xfdtd_cuda/tensor.cuh>
 #include <xfdtd_cuda/tensor_hd.cuh>
 
-#include "xfdtd/grid_space/grid_space.h"
-
 namespace xfdtd {
 
 namespace cuda {
@@ -20,7 +18,7 @@ namespace cuda {
 class GridSpaceData {
   friend class GridSpaceHD;
 
-public:
+ public:
   XFDTD_CUDA_DUAL auto basedDx() const -> Real { return _based_dx; }
 
   XFDTD_CUDA_DUAL auto basedDy() const -> Real { return _based_dy; }
@@ -112,7 +110,7 @@ public:
    */
   XFDTD_CUDA_DUAL auto sizeZ() const -> Index { return hNodeZ().size(); }
 
-private:
+ private:
   Real _based_dx{}, _based_dy{}, _based_dz{};
   Real _min_dx{}, _min_dy{}, _min_dz{};
 
@@ -122,52 +120,11 @@ private:
   Array1D<Real> *_h_size_x{}, *_h_size_y{}, *_h_size_z{};
 };
 
-class GridSpaceHD {
-  using Host = xfdtd::GridSpace;
-  using Device = GridSpaceData;
+XFDTD_CUDA_GLOBAL auto __kenerlCheckGridSpace(const GridSpaceData *grid_space)
+    -> void;
 
-public:
-  GridSpaceHD(const Host *host);
+}  // namespace cuda
 
-  GridSpaceHD(const GridSpaceHD &) = delete;
+}  // namespace xfdtd
 
-  GridSpaceHD(GridSpaceHD &&) = delete;
-
-  ~GridSpaceHD();
-
-  auto operator=(const GridSpaceHD &) -> GridSpaceHD & = delete;
-
-  auto operator=(GridSpaceHD &&) -> GridSpaceHD & = delete;
-
-  auto copyHostToDevice() -> void;
-
-  auto copyDeviceToHost() -> void;
-
-  auto releaseDevice() -> void;
-
-  auto host() { return _host; }
-
-  auto device() { return _device; }
-
-  auto host() const { return _host; }
-
-  auto device() const { return _device; }
-
-private:
-  const Host *_host{};
-  Device *_device{};
-
-  TensorHD<Real, 1> _e_node_x_hd, _e_node_y_hd, _e_node_z_hd;
-  TensorHD<Real, 1> _h_node_x_hd, _h_node_y_hd, _h_node_z_hd;
-  TensorHD<Real, 1> _e_size_x_hd, _e_size_y_hd, _e_size_z_hd;
-  TensorHD<Real, 1> _h_size_x_hd, _h_size_y_hd, _h_size_z_hd;
-};
-
-XFDTD_CUDA_GLOBAL auto
-__kenerlCheckGridSpace(const GridSpaceData *grid_space) -> void;
-
-} // namespace cuda
-
-} // namespace xfdtd
-
-#endif // __XFDTD_CUDA_GRID_SPACE_GRID_SPACE_CUH__
+#endif  // __XFDTD_CUDA_GRID_SPACE_GRID_SPACE_CUH__
