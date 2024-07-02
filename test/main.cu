@@ -8,6 +8,7 @@
 #include <xfdtd_cuda/electromagnetic_field/electromagnetic_field_hd.cuh>
 #include <xfdtd_cuda/grid_space/grid_space.cuh>
 #include <xfdtd_cuda/grid_space/grid_space_hd.cuh>
+#include <xfdtd_cuda/simulation/simulation_hd.cuh>
 
 #include "xfdtd/common/constant.h"
 #include "xfdtd/coordinate_system/coordinate_system.h"
@@ -64,7 +65,7 @@ void cylinderScatter2D() {
   //         xfdtd::EMF::Field::EZ, "", ""),
   //     20, "movie", "./data/cylinder_scatter_2d")};
   auto s{xfdtd::Simulation{dx, dy, 1, 0.8, xfdtd::ThreadConfig{1, 1, 1}}};
-  s.addObject(domain);
+  // s.addObject(domain);
   // s.addObject(cylinder);
   // s.addBoundary(std::make_shared<xfdtd::PML>(10,
   // xfdtd::Axis::Direction::XN));
@@ -75,7 +76,7 @@ void cylinderScatter2D() {
   // s.addBoundary(std::make_shared<xfdtd::PML>(10,
   // xfdtd::Axis::Direction::YP)); s.addWaveformSource(tfsf_2d);
   // s.addMonitor(movie);
-  s.init(150);
+  // s.init(15);
 
   // {
   //   auto &&t = s.calculationParam()->timeParam().get();
@@ -123,6 +124,14 @@ void cylinderScatter2D() {
   //   xfdtd::cuda::__kenerlCheckGridSpace<<<1, 1>>>(g_hd.device());
   //   cudaDeviceSynchronize();
   // }
+
+  {
+    auto s_hd = xfdtd::cuda::SimulationHD{&s};
+    s_hd.host()->addObject(domain);
+    s_hd.setGridDim(dim3{2, 2, 1});
+    s_hd.setBlockDim(dim3{2, 2, 1});
+    s_hd.run(15);
+  }
 }
 
 int main(int argc, char *argv[]) {

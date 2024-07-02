@@ -20,9 +20,9 @@ struct FDTD2DScatterProblem {
   using Array2D = xfdtd::cuda::Tensor<Real, 2>;
   using Array3D = xfdtd::cuda::Tensor<Real, 3>;
 
-  SizeType _nt{}; // time steps
-  SizeType _nx{}; // x size
-  SizeType _ny{}; // y size
+  SizeType _nt{};  // time steps
+  SizeType _nx{};  // x size
+  SizeType _ny{};  // y size
 
   // update coefficients
   Array2D *_ceze{};
@@ -277,15 +277,17 @@ XFDTD_CUDA_DUAL void runSimulateSingle(FDTD2DScatterProblem *problem) {
 }
 
 __global__ void run(FDTD2DScatterProblem *problem) {
-  // printf("GridDim: {%d, %d, %d} BlockDim: {%d, %d, %d}\n", gridDim.x,
-  // gridDim.y,
-  //        gridDim.z, blockDim.x, blockDim.y, blockDim.z);
+  printf("GridDim: {%d, %d, %d} BlockDim: {%d, %d, %d}\n", gridDim.x, gridDim.y,
+         gridDim.z, blockDim.x, blockDim.y, blockDim.z);
   const auto id_x = blockIdx.x * blockDim.x + threadIdx.x;
   const auto id_y = blockIdx.y * blockDim.y + threadIdx.y;
-  // printf("ThreadIdx: {%d, %d, %d} BlockIdx: {%d, %d, %d} id_x: %d id_y:
-  // %d\n",
-  //        threadIdx.x, threadIdx.y, threadIdx.z, blockIdx.x, blockIdx.y,
-  //        blockIdx.z, id_x, id_y);
+  const auto id = id_x + id_y * blockDim.x;
+  printf(
+      "ID: %d, ThreadIdx: {%d, %d, %d} BlockIdx: {%d, %d, %d} id_x: %d id_y: "
+      "%d\n ",
+      id, threadIdx.x, threadIdx.y, threadIdx.z, blockIdx.x, blockIdx.y,
+      blockIdx.z, id_x, id_y);
+  return;
   struct Range {
     SizeType _start;
     SizeType _end;
@@ -323,11 +325,11 @@ __global__ void run(FDTD2DScatterProblem *problem) {
     range_y_e_z._start = 1;
   }
 
-  printf("ThreadIdx: {%d, %d, %d} BlockIdx: {%d, %d, %d} id_x: %d id_y: %d "
-         "task_x: [%lu, %lu) task_y: [%lu, %lu)\n",
-         threadIdx.x, threadIdx.y, threadIdx.z, blockIdx.x, blockIdx.y,
-         blockIdx.z, id_x, id_y, range_x._start, range_x._end, range_y._start,
-         range_y._end);
+  printf(
+      "ThreadIdx: {%d, %d, %d} BlockIdx: {%d, %d, %d} id_x: %d id_y: %d "
+      "task_x: [%lu, %lu) task_y: [%lu, %lu)\n",
+      threadIdx.x, threadIdx.y, threadIdx.z, blockIdx.x, blockIdx.y, blockIdx.z,
+      id_x, id_y, range_x._start, range_x._end, range_y._start, range_y._end);
 
   const auto nt = problem->_nt;
   // const auto nx = problem->_nx;
@@ -1013,7 +1015,7 @@ void FDTD2d() {
   problem._hx = hx_hd.device();
   problem._hy = hy_hd.device();
   problem._movie = movie.device();
-  problem._block = dim3{16, 16};
+  problem._block = dim3{3, 4};
   problem._grid = dim3{1, 1};
   {
     auto err = cudaMemcpy(problem_decive, &problem,
@@ -1042,6 +1044,7 @@ void FDTD2d() {
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   printf("Duration: %ld ms\n", duration.count());
+  return;
   // copy back
   movie.copyDeviceToHost();
 

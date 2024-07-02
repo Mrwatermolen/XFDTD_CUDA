@@ -1,12 +1,9 @@
 #ifndef __XFDTD_CUDA_CALCULATION_PARAM_MATERIAL_PARAM_CUH__
 #define __XFDTD_CUDA_CALCULATION_PARAM_MATERIAL_PARAM_CUH__
 
-#include <xfdtd/calculation_param/calculation_param.h>
-
 #include <xfdtd_cuda/calculation_param/fdtd_coefficient.cuh>
 #include <xfdtd_cuda/calculation_param/material_param.cuh>
 #include <xfdtd_cuda/calculation_param/time_param.cuh>
-#include <xfdtd_cuda/common.cuh>
 
 namespace xfdtd {
 
@@ -16,47 +13,32 @@ class CalculationParam {
   friend class CalculationParamHD;
 
  public:
-  CalculationParam() = default;
-
-  XFDTD_CUDA_DUAL CalculationParam(TimeParam* time_param,
-                                   MaterialParam* material_param,
-                                   FDTDCoefficient* fdtd_coefficient)
+  CalculationParam(TimeParam* time_param, MaterialParam* material_param,
+                   FDTDCoefficient* fdtd_coefficient)
       : _time_param{time_param},
         _material_param{material_param},
         _fdtd_coefficient{fdtd_coefficient} {}
 
-  XFDTD_CUDA_DUAL auto timeParam() const -> const TimeParam* {
+  XFDTD_CUDA_DEVICE auto timeParam() const -> const TimeParam* {
     return _time_param;
   }
 
-  XFDTD_CUDA_DUAL auto materialParam() const -> const MaterialParam* {
+  XFDTD_CUDA_DEVICE auto materialParam() const -> const MaterialParam* {
     return _material_param;
   }
 
-  XFDTD_CUDA_DUAL auto fdtdCoefficient() const -> const FDTDCoefficient* {
+  XFDTD_CUDA_DEVICE auto fdtdCoefficient() const -> const FDTDCoefficient* {
     return _fdtd_coefficient;
   }
 
-  XFDTD_CUDA_DUAL auto timeParam() -> TimeParam* { return _time_param; }
+  XFDTD_CUDA_DEVICE auto timeParam() -> TimeParam* { return _time_param; }
 
-  XFDTD_CUDA_DUAL auto materialParam() -> MaterialParam* {
+  XFDTD_CUDA_DEVICE auto materialParam() -> MaterialParam* {
     return _material_param;
   }
 
-  XFDTD_CUDA_DUAL auto fdtdCoefficient() -> FDTDCoefficient* {
+  XFDTD_CUDA_DEVICE auto fdtdCoefficient() -> FDTDCoefficient* {
     return _fdtd_coefficient;
-  }
-
-  XFDTD_CUDA_DUAL auto setTimeParam(TimeParam* time_param) {
-    _time_param = time_param;
-  }
-
-  XFDTD_CUDA_DUAL auto setMaterialParam(MaterialParam* material_param) {
-    _material_param = material_param;
-  }
-
-  XFDTD_CUDA_DUAL auto setFDTDCoefficient(FDTDCoefficient* fdtd_coefficient) {
-    _fdtd_coefficient = fdtd_coefficient;
   }
 
  private:

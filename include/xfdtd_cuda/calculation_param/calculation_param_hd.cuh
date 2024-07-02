@@ -3,6 +3,7 @@
 
 #include <xfdtd/calculation_param/calculation_param.h>
 
+#include <memory>
 #include <xfdtd_cuda/calculation_param/calculation_param.cuh>
 #include <xfdtd_cuda/calculation_param/fdtd_coefficient_hd.cuh>
 #include <xfdtd_cuda/calculation_param/material_param_hd.cuh>
@@ -18,11 +19,12 @@ class CalculationParamHD
   using Device = xfdtd::cuda::CalculationParam;
 
  public:
-  CalculationParamHD(xfdtd::CalculationParam* calculation_param)
-      : HostDeviceCarrier<xfdtd::CalculationParam,
-                          xfdtd::cuda::CalculationParam>{calculation_param},
-        _time_param_hd{calculation_param->timeParam().get()},
-        _fdtd_coefficient_hd{calculation_param->fdtdCoefficient().get()} {}
+  CalculationParamHD(Host* calculation_param)
+      : HostDeviceCarrier{calculation_param},
+        _time_param_hd{std::make_shared<TimeParamHD>(
+            calculation_param->timeParam().get())},
+        _fdtd_coefficient_hd{std::make_shared<FDTDCoefficientHD>(
+            calculation_param->fdtdCoefficient().get())} {}
 
   ~CalculationParamHD() override { releaseDevice(); }
 
@@ -33,11 +35,11 @@ class CalculationParamHD
           "Host data is not initialized");
     }
 
-    _time_param_hd.copyHostToDevice();
-    _fdtd_coefficient_hd.copyHostToDevice();
+    _time_param_hd->copyHostToDevice();
+    _fdtd_coefficient_hd->copyHostToDevice();
 
-    auto d =
-        Device{_time_param_hd.device(), nullptr, _fdtd_coefficient_hd.device()};
+    auto d = Device{_time_param_hd->device(), nullptr,
+                    _fdtd_coefficient_hd->device()};
 
     copyToDevice(&d);
   }
@@ -49,32 +51,28 @@ class CalculationParamHD
           "Host data is not initialized");
     }
 
-    _time_param_hd.copyDeviceToHost();
-    _fdtd_coefficient_hd.copyDeviceToHost();
+    _time_param_hd->copyDeviceToHost();
+    _fdtd_coefficient_hd->copyDeviceToHost();
   }
 
   auto releaseDevice() -> void override {
-    _time_param_hd.releaseDevice();
-    _fdtd_coefficient_hd.releaseDevice();
+    _time_param_hd->releaseDevice();
+    _fdtd_coefficient_hd->releaseDevice();
 
     releaseBaseDevice();
   }
 
-  auto timeParamHD() -> TimeParamHD& { return _time_param_hd; }
+  auto timeParamHD() { return _time_param_hd; }
 
-  auto fdtdCoefficientHD() -> FDTDCoefficientHD& {
-    return _fdtd_coefficient_hd;
-  }
+  auto fdtdCoefficientHD() { return _fdtd_coefficient_hd; }
 
-  auto timeParamHD() const -> const TimeParamHD& { return _time_param_hd; }
+  auto timeParamHD() const { return _time_param_hd; }
 
-  auto fdtdCoefficientHD() const -> const FDTDCoefficientHD& {
-    return _fdtd_coefficient_hd;
-  }
+  auto fdtdCoefficientHD() const { return _fdtd_coefficient_hd; }
 
  private:
-  TimeParamHD _time_param_hd;
-  FDTDCoefficientHD _fdtd_coefficient_hd;
+  std::shared_ptr<TimeParamHD> _time_param_hd{};
+  std::shared_ptr<FDTDCoefficientHD> _fdtd_coefficient_hd{};
 };
 
 }  // namespace xfdtd::cuda
