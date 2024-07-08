@@ -1,4 +1,6 @@
+#include <xfdtd/boundary/pml.h>
 #include <xfdtd/common/type_define.h>
+#include <xfdtd/coordinate_system/coordinate_system.h>
 #include <xfdtd/simulation/simulation.h>
 #include <xfdtd/waveform_source/tfsf.h>
 
@@ -10,6 +12,7 @@
 #include <xfdtd_cuda/host_device_carrier.cuh>
 #include <xfdtd_cuda/simulation/simulation_hd.cuh>
 
+#include "boundary/pml_corrector_hd.cuh"
 #include "domain/domain_hd.cuh"
 #include "monitor/movie_monitor_hd.cuh"
 #include "updator/basic_updator_te_hd.cuh"
@@ -73,6 +76,29 @@ auto SimulationHD::run(Index time_step) -> void {
     domain_hd->addCorrector(tfsf->getTFSFCorrector2DAgency());
   }
 
+  // PML
+  std::vector<std::unique_ptr<PMLCorrectorHD<xfdtd::Axis::XYZ::X>>>
+      pml_corrector_x_hd;
+  std::vector<std::unique_ptr<PMLCorrectorHD<xfdtd::Axis::XYZ::Y>>>
+      pml_corrector_y_hd;
+  std::vector<std::unique_ptr<PMLCorrectorHD<xfdtd::Axis::XYZ::Z>>>
+      pml_corrector_z_hd;
+  addPMLBoundaryHD(pml_corrector_x_hd);
+  addPMLBoundaryHD(pml_corrector_y_hd);
+  addPMLBoundaryHD(pml_corrector_z_hd);
+  for (auto&& pml : pml_corrector_x_hd) {
+    pml->copyHostToDevice();
+    domain_hd->addCorrector(pml->getAgency());
+  }
+  for (auto&& pml : pml_corrector_y_hd) {
+    pml->copyHostToDevice();
+    domain_hd->addCorrector(pml->getAgency());
+  }
+  for (auto&& pml : pml_corrector_z_hd) {
+    pml->copyHostToDevice();
+    domain_hd->addCorrector(pml->getAgency());
+  }
+
   std::vector<std::unique_ptr<MovieMonitorHD<xfdtd::EMF::Field::EZ>>>
       movie_mointor_hd;
   for (auto&& m : host()->monitors()) {
@@ -133,6 +159,30 @@ auto SimulationHD::addTFSFCorrectorHD(
     auto tfsf_2d_hd = std::make_unique<TFSFCorrectorHD>(
         tfsf, _calculation_param_hd->device(), _emf_hd->device());
     tfsf_hd.emplace_back(std::move(tfsf_2d_hd));
+  }
+}
+
+template <xfdtd::Axis::XYZ xyz>
+auto SimulationHD::addPMLBoundaryHD(
+    std::vector<std::unique_ptr<PMLCorrectorHD<xyz>>>& pml_corrector_hd)
+    -> void {
+  auto boundaries = host()->boundaries();
+  if (boundaries.size() == 0) {
+    return;
+  }
+
+  for (auto&& b : boundaries) {
+    auto pml = dynamic_cast<xfdtd::PML*>(b.get());
+    if (pml == nullptr) {
+      continue;
+    }
+
+    if (pml->mainAxis() != xyz) {
+      continue;
+    }
+
+    auto pml_corrector = std::make_unique<PMLCorrectorHD<xyz>>(pml, _emf_hd);
+    pml_corrector_hd.emplace_back(std::move(pml_corrector));
   }
 }
 

@@ -158,10 +158,14 @@ void cylinderScatter2D() {
         std::chrono::high_resolution_clock::now();
     auto s_hd = xfdtd::cuda::SimulationHD{&s};
     s_hd.host()->addObject(domain);
-    // s_hd.host()->addObject(cylinder);
+    s_hd.host()->addObject(cylinder);
     s_hd.host()->addWaveformSource(tfsf_2d);
+    s_hd.host()->addBoundary(std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::XN));
+    s_hd.host()->addBoundary(std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::XP));
+    s_hd.host()->addBoundary(std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::YN));
+    s_hd.host()->addBoundary(std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::YP));
     s_hd.host()->addMonitor(movie);
-    s_hd.setGridDim(dim3{4, 4, 1});
+    s_hd.setGridDim({4, 4, 1});
     s_hd.setBlockDim(dim3{16, 16, 1});
     s_hd.run(1500);
     auto err = cudaGetLastError();

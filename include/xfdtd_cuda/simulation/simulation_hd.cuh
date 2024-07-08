@@ -2,7 +2,10 @@
 #define __XFDTD_CUDA_SIMULATION_HD_CUH__
 
 #include <xfdtd/common/type_define.h>
+#include <xfdtd/coordinate_system/coordinate_system.h>
 
+#include <memory>
+#include <vector>
 #include <xfdtd_cuda/host_device_carrier.cuh>
 
 namespace xfdtd {
@@ -17,6 +20,9 @@ class GridSpaceHD;
 class CalculationParamHD;
 class EMFHD;
 class TFSFCorrectorHD;
+
+template <xfdtd::Axis::XYZ xyz>
+class PMLCorrectorHD;
 
 class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
  public:
@@ -48,6 +54,10 @@ class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
 
   auto addTFSFCorrectorHD(
       std::vector<std::unique_ptr<TFSFCorrectorHD>>& tfsf_hd) -> void;
+
+  template <xfdtd::Axis::XYZ xyz>
+  auto addPMLBoundaryHD(std::vector<std::unique_ptr<PMLCorrectorHD<xyz>>>&
+                            pml_corrector_hd) -> void;
 };
 };  // namespace xfdtd::cuda
 
