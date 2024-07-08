@@ -140,6 +140,10 @@ class Tensor {
     return _data[offset];
   }
 
+  XFDTD_CUDA_DUAL auto data() { return _data; }
+
+  XFDTD_CUDA_DUAL auto data() const { return _data; }
+
   XFDTD_CUDA_DUAL auto begin() { return _data; }
 
   XFDTD_CUDA_DUAL auto end() { return _data + size(); }
@@ -208,23 +212,20 @@ class Tensor {
   }
 
   template <SizeType dim>
-  XFDTD_CUDA_DUAL static auto rawOffset(const SizeType strides[])
-      -> SizeType {
+  XFDTD_CUDA_DUAL static auto rawOffset(const SizeType strides[]) -> SizeType {
     return 0;
   }
 
   template <SizeType dim, typename Arg, typename... Args>
-  XFDTD_CUDA_DUAL static auto rawOffset(const SizeType strides[],
-                                             Arg &&arg,
-                                             Args &&...args) -> SizeType {
+  XFDTD_CUDA_DUAL static auto rawOffset(const SizeType strides[], Arg &&arg,
+                                        Args &&...args) -> SizeType {
     return static_cast<SizeType>(arg) * strides[dim] +
            rawOffset<dim + 1>(strides, std::forward<Args>(args)...);
   }
 
   template <typename Arg, typename... Args>
-  XFDTD_CUDA_DUAL static auto dataOffset(const SizeType stride[],
-                                              Arg &&arg,
-                                              Args &&...args) -> SizeType {
+  XFDTD_CUDA_DUAL static auto dataOffset(const SizeType stride[], Arg &&arg,
+                                         Args &&...args) -> SizeType {
     constexpr SizeType nargs = sizeof...(Args) + 1;
     if constexpr (nargs == dimension()) {
       return rawOffset<static_cast<SizeType>(0)>(stride, std::forward<Arg>(arg),

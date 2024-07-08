@@ -67,9 +67,8 @@ template <typename xfdtd::EMF::Attribute attribute, Axis::XYZ xyz,
 XFDTD_CUDA_DUAL inline auto update(xfdtd::cuda::EMF& emf,
                                    FDTDCoefficient& update_coefficient,
                                    const Size is, const Size ie, const Size js,
-                                   const Size je, const Size ks, const Size ke,
-                                   const Size step_i, const Size step_j,
-                                   const Size step_k) {
+                                   const Size je, const Size ks,
+                                   const Size ke) {
   constexpr auto dual_attribute = xfdtd::EMF::dualAttribute(attribute);
   constexpr auto xzy_a = Axis::tangentialAAxis<xyz>();
   constexpr auto xzy_b = Axis::tangentialBAxis<xyz>();
@@ -88,9 +87,9 @@ XFDTD_CUDA_DUAL inline auto update(xfdtd::cuda::EMF& emf,
 
 #define XFDTD_CUDA_IS_DEBUG 1
 
-  for (Size i = is; i < ie; i += step_i) {
-    for (Size j = js; j < je; j += step_j) {
-      for (Size k = ks; k < ke; k += step_k) {
+  for (Size i = is; i < ie; ++i) {
+    for (Size j = js; j < je; ++j) {
+      for (Size k = ks; k < ke; ++k) {
         auto [a, b, c] = transform::xYZToABC<Index, xyz>(i, j, k);
         auto b_1 = b + offset;
         auto a_1 = a + offset;

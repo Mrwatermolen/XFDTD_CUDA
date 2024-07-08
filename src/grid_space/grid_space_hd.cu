@@ -1,9 +1,7 @@
 #include <xfdtd_cuda/grid_space/grid_space_hd.cuh>
 #include <xfdtd_cuda/tensor_hd.cuh>
 
-namespace xfdtd {
-
-namespace cuda {
+namespace xfdtd::cuda {
 
 GridSpaceHD::GridSpaceHD(Host *host)
     : HostDeviceCarrier<Host, Device>{host},
@@ -86,26 +84,4 @@ auto GridSpaceHD::releaseDevice() -> void {
   releaseBaseDevice();
 }
 
-XFDTD_CUDA_GLOBAL auto __kenerlCheckGridSpace(const GridSpaceData *grid_space)
-    -> void {
-  if (grid_space == nullptr) {
-    printf("GridSpaceData: nullptr\n");
-    return;
-  }
-  // print based dx, dy, dz
-  printf("GridSpaceData: Based dx = %f, dy = %f, dz = %f\n",
-         grid_space->basedDx(), grid_space->basedDy(), grid_space->basedDz());
-
-  printf("GridSpaceData: Size = (%lu, %lu, %lu)\n", grid_space->sizeX(),
-         grid_space->sizeY(), grid_space->sizeZ());
-
-  // print e node x
-  printf("GridSpaceData: e node x = ");
-  for (size_t i = 0; i < grid_space->eNodeX().size(); i++) {
-    printf("%.3e ", grid_space->eNodeX()[i]);
-  }
-}
-
-}  // namespace cuda
-
-}  // namespace xfdtd
+}  // namespace xfdtd::cuda

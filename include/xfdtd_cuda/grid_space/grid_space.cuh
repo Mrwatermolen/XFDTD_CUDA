@@ -15,7 +15,7 @@ namespace cuda {
  * @brief Holds the grid space data
  *
  */
-class GridSpaceData {
+class GridSpace {
   friend class GridSpaceHD;
 
  public:
@@ -120,7 +120,7 @@ class GridSpaceData {
   Array1D<Real> *_h_size_x{}, *_h_size_y{}, *_h_size_z{};
 };
 
-XFDTD_CUDA_GLOBAL auto __kenerlCheckGridSpace(const GridSpaceData *grid_space)
+XFDTD_CUDA_GLOBAL auto __kenerlCheckGridSpace(const GridSpace *grid_space)
     -> void;
 
 }  // namespace cuda

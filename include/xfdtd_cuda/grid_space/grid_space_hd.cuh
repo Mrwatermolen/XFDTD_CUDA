@@ -9,9 +9,9 @@
 namespace xfdtd::cuda {
 
 class GridSpaceHD
-    : public HostDeviceCarrier<xfdtd::GridSpace, xfdtd::cuda::GridSpaceData> {
+    : public HostDeviceCarrier<xfdtd::GridSpace, xfdtd::cuda::GridSpace> {
   using Host = xfdtd::GridSpace;
-  using Device = xfdtd::cuda::GridSpaceData;
+  using Device = xfdtd::cuda::GridSpace;
 
  public:
   GridSpaceHD(Host *host);

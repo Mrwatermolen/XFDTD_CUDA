@@ -6,10 +6,10 @@
 #include <xfdtd/electromagnetic_field/electromagnetic_field.h>
 #include <xfdtd/util/transform/abc_xyz.h>
 
+#include <xfdtd_cuda/calculation_param/calculation_param.cuh>
 #include <xfdtd_cuda/common.cuh>
+#include <xfdtd_cuda/electromagnetic_field/electromagnetic_field.cuh>
 #include <xfdtd_cuda/index_task.cuh>
-
-#include "xfdtd_cuda/calculation_param/calculation_param.cuh"
 
 namespace xfdtd::cuda {
 
@@ -17,10 +17,14 @@ class TFSFCorrector {
   friend class TFSFCorrectorHD;
 
  public:
-  template <Axis::Direction direction, EMF::Attribute attribute,
+  template <Axis::Direction direction, xfdtd::EMF::Attribute attribute,
             Axis::XYZ field_xyz>
-  XFDTD_CUDA_DUAL auto correctTFSF(IndexTask task, Index offset_i,
-                                   Index offset_j, Index offset_k) {
+  XFDTD_CUDA_DEVICE auto correctTFSF(IndexTask task, Index offset_i,
+                                     Index offset_j, Index offset_k) {
+    if (!task.valid()) {
+      return;
+    }
+
     constexpr auto xyz = Axis::fromDirectionToXYZ<direction>();
     constexpr auto dual_xyz_a = Axis::tangentialAAxis<xyz>();
     constexpr auto dual_xyz_b = Axis::tangentialBAxis<xyz>();
@@ -33,7 +37,7 @@ class TFSFCorrector {
     constexpr auto dual_field_xyz =
         (field_xyz == dual_xyz_a) ? dual_xyz_b : dual_xyz_a;
 
-    constexpr auto dual_attribute = EMF::dualAttribute(attribute);
+    constexpr auto dual_attribute = xfdtd::EMF::dualAttribute(attribute);
 
     auto [as, bs, cs] = transform::xYZToABC<Index, xyz>(
         task.xRange().start(), task.yRange().start(), task.zRange().start());
@@ -45,8 +49,8 @@ class TFSFCorrector {
     // HA: [as, ae+1), [bs, be), [c]
     // HB: [as, ae), [bs, be+1), [c]
     constexpr auto offset_a =
-        ((attribute == EMF::Attribute::E && field_xyz == dual_xyz_b) ||
-         (attribute == EMF::Attribute::H && field_xyz == dual_xyz_a))
+        ((attribute == xfdtd::EMF::Attribute::E && field_xyz == dual_xyz_b) ||
+         (attribute == xfdtd::EMF::Attribute::H && field_xyz == dual_xyz_a))
             ? 1
             : 0;
     constexpr auto offset_b = offset_a == 1 ? 0 : 1;
@@ -65,12 +69,35 @@ class TFSFCorrector {
       }
     }
 
+    // if constexpr (direction == xfdtd::Axis::Direction::XN &&
+    //               attribute == xfdtd::EMF::Attribute::E &&
+    //               Axis::XYZ::Z == field_xyz) {
+    //   static bool is_print = false;
+    //   if (!is_print) {
+    //     auto block_id = blockIdx.x + blockIdx.y * gridDim.x +
+    //                     blockIdx.z * gridDim.x * gridDim.y;
+    //     auto thread_id = threadIdx.x + threadIdx.y * blockDim.x +
+    //                      threadIdx.z * blockDim.x * blockDim.y;
+    //     printf(
+    //         "TFSF EZ: blockIdx: (%d, %d, %d), threadIdx: (%d, %d, %d), "
+    //         "block_id: %d, "
+    //         "thread_id: %d. Task: [%lu, %lu), [%lu, %lu), [%lu, %lu)\n",
+    //         blockIdx.x, blockIdx.y, blockIdx.z, threadIdx.x, threadIdx.y,
+    //         threadIdx.z, block_id, thread_id, task.xRange().start(),
+    //         task.xRange().end(), task.yRange().start(), task.yRange().end(),
+    //         task.zRange().start(), task.zRange().end());
+
+    //     is_print = true;
+    //   }
+    // }
+
     // E in total field need add incident for forward H.
     // H in scattered field need deduct incident for backward E.
     constexpr auto compensate_flag = 1;
     // E = E + c_h * \times H
     // H = H - c_e * \times E
-    constexpr auto equation_flag = (attribute == EMF::Attribute::E) ? 1 : -1;
+    constexpr auto equation_flag =
+        (attribute == xfdtd::EMF::Attribute::E) ? 1 : -1;
     // EA: \times H = ( \partial H_c / \partial b - \partial H_b / \partial c )
     // EB: \times H = ( \partial H_a / \partial c - \partial H_c / \partial a )
     constexpr auto different_flag = (field_xyz == dual_xyz_a) ? -1 : 1;
@@ -84,7 +111,8 @@ class TFSFCorrector {
         compensate_flag * equation_flag * different_flag * direction_flag;
 
     if constexpr (direction == Axis::Direction::XN &&
-                  attribute == EMF::Attribute::E && field_xyz == Axis::XYZ::Z) {
+                  attribute == xfdtd::EMF::Attribute::E &&
+                  field_xyz == Axis::XYZ::Z) {
       static_assert(coefficient_flag == -1, "Coefficient flag error");
     }
 
@@ -105,7 +133,7 @@ class TFSFCorrector {
           auto [a, b, c] = transform::xYZToABC<Index, xyz>(i, j, k);
 
           if constexpr (Axis::directionNegative<direction>()) {
-            if constexpr (attribute == EMF::Attribute::E) {
+            if constexpr (attribute == xfdtd::EMF::Attribute::E) {
               auto [i_dual, j_dual, k_dual] =
                   transform::aBCToXYZ<Index, xyz>(a, b, c - 1);
               const auto dual_incident_field_v =
@@ -151,9 +179,9 @@ class TFSFCorrector {
     }
   };
 
-  template <EMF::Attribute attribute, Axis::XYZ xyz>
-  XFDTD_CUDA_DUAL auto getInc(Index t, Index i, Index j, Index k) const {
-    if constexpr (attribute == EMF::Attribute::E) {
+  template <xfdtd::EMF::Attribute attribute, Axis::XYZ xyz>
+  XFDTD_CUDA_DEVICE auto getInc(Index t, Index i, Index j, Index k) const {
+    if constexpr (attribute == xfdtd::EMF::Attribute::E) {
       if constexpr (xyz == Axis::XYZ::X) {
         return exInc(t, i, j, k);
       } else if constexpr (xyz == Axis::XYZ::Y) {
@@ -172,9 +200,9 @@ class TFSFCorrector {
     }
   }
 
-  template <Axis::XYZ xyz, EMF::Attribute attribute>
-  XFDTD_CUDA_DUAL auto getCoefficient() const {
-    if constexpr (attribute == EMF::Attribute::E) {
+  template <Axis::XYZ xyz, xfdtd::EMF::Attribute attribute>
+  XFDTD_CUDA_DEVICE auto getCoefficient() const {
+    if constexpr (attribute == xfdtd::EMF::Attribute::E) {
       if constexpr (xyz == Axis::XYZ::X) {
         return cax();
       } else if constexpr (xyz == Axis::XYZ::Y) {
@@ -193,41 +221,79 @@ class TFSFCorrector {
     }
   }
 
-  XFDTD_CUDA_DUAL auto exInc(Index t, Index i, Index j, Index k) const -> Real;
-
-  XFDTD_CUDA_DUAL auto eyInc(Index t, Index i, Index j, Index k) const -> Real;
-
-  XFDTD_CUDA_DUAL auto ezInc(Index t, Index i, Index j, Index k) const -> Real;
-
-  XFDTD_CUDA_DUAL auto hxInc(Index t, Index i, Index j, Index k) const -> Real;
-
-  XFDTD_CUDA_DUAL auto hyInc(Index t, Index i, Index j, Index k) const -> Real;
-
-  XFDTD_CUDA_DUAL auto hzInc(Index t, Index i, Index j, Index k) const -> Real;
-
-  XFDTD_CUDA_DUAL Real cax() const { return _cax; }
-
-  XFDTD_CUDA_DUAL Real cay() const { return _cay; }
-
-  XFDTD_CUDA_DUAL Real caz() const { return _caz; }
-
-  XFDTD_CUDA_DUAL Real cbx() const { return _cbx; }
-
-  XFDTD_CUDA_DUAL Real cby() const { return _cby; }
-
-  XFDTD_CUDA_DUAL Real cbz() const { return _cbz; }
-
-  XFDTD_CUDA_DUAL auto calculationParam() const -> const CalculationParam* {
-    return _calculation_param;
+  template <Axis::XYZ xyz>
+  XFDTD_CUDA_DEVICE auto getStart() const -> Index {
+    if constexpr (xyz == Axis::XYZ::X) {
+      return _total_task.xRange().start();
+    } else if constexpr (xyz == Axis::XYZ::Y) {
+      return _total_task.yRange().start();
+    } else if constexpr (xyz == Axis::XYZ::Z) {
+      return _total_task.zRange().start();
+    }
   }
 
-  XFDTD_CUDA_DUAL auto emf() const -> const EMF* { return _emf; }
+  template <Axis::XYZ xyz>
+  XFDTD_CUDA_DEVICE auto getEnd() const -> Index {
+    if constexpr (xyz == Axis::XYZ::X) {
+      return _total_task.xRange().end();
+    } else if constexpr (xyz == Axis::XYZ::Y) {
+      return _total_task.yRange().end();
+    } else if constexpr (xyz == Axis::XYZ::Z) {
+      return _total_task.zRange().end();
+    }
+  }
+
+  XFDTD_CUDA_DEVICE auto task() const;
+
+  XFDTD_CUDA_DEVICE auto globalStartI() const -> Index;
+
+  XFDTD_CUDA_DEVICE auto globalStartJ() const -> Index;
+
+  XFDTD_CUDA_DEVICE auto globalStartK() const -> Index;
+
+  XFDTD_CUDA_DEVICE auto exInc(Index t, Index i, Index j,
+                               Index k) const -> Real;
+
+  XFDTD_CUDA_DEVICE auto eyInc(Index t, Index i, Index j,
+                               Index k) const -> Real;
+
+  XFDTD_CUDA_DEVICE auto ezInc(Index t, Index i, Index j,
+                               Index k) const -> Real;
+
+  XFDTD_CUDA_DEVICE auto hxInc(Index t, Index i, Index j,
+                               Index k) const -> Real;
+
+  XFDTD_CUDA_DEVICE auto hyInc(Index t, Index i, Index j,
+                               Index k) const -> Real;
+
+  XFDTD_CUDA_DEVICE auto hzInc(Index t, Index i, Index j,
+                               Index k) const -> Real;
+
+  XFDTD_CUDA_DEVICE Real cax() const { return _cax; }
+
+  XFDTD_CUDA_DEVICE Real cay() const { return _cay; }
+
+  XFDTD_CUDA_DEVICE Real caz() const { return _caz; }
+
+  XFDTD_CUDA_DEVICE Real cbx() const { return _cbx; }
+
+  XFDTD_CUDA_DEVICE Real cby() const { return _cby; }
+
+  XFDTD_CUDA_DEVICE Real cbz() const { return _cbz; }
+
+  XFDTD_CUDA_DEVICE auto calculationParam() const -> const CalculationParam*;
+
+  XFDTD_CUDA_DEVICE auto emf() const -> const EMF*;
+
+  XFDTD_CUDA_DEVICE auto calculationParam() -> const CalculationParam*;
+
+  XFDTD_CUDA_DEVICE auto emf() -> EMF*;
 
  private:
-  const CalculationParam* _calculation_param{};
-  EMF* _emf{};
-  Index _node_offset_i, _node_offset_j, _node_offset_k;
-  IndexTask _total_task;
+  const xfdtd::cuda::CalculationParam* _calculation_param{};
+  xfdtd::cuda::EMF* _emf{};
+  Index _node_offset_i{}, _node_offset_j{}, _node_offset_k{};
+  IndexTask _total_task{};
 
   const Array1D<Real>* _projection_x_int{};
   const Array1D<Real>* _projection_y_int{};
@@ -240,6 +306,43 @@ class TFSFCorrector {
   Real _cax, _cbx, _cay, _cby, _caz, _cbz;
   Real _transform_e_x, _transform_e_y, _transform_e_z, _transform_h_x,
       _transform_h_y, _transform_h_z;
+
+  XFDTD_CUDA_DEVICE static auto decomposeTask(IndexTask task, Index id,
+                                              Index size_x, Index size_y,
+                                              Index size_z) -> IndexTask {
+    auto [id_x, id_y, id_z] = columnMajorToRowMajor(id, size_x, size_y, size_z);
+    auto x_range = decomposeRange(task.xRange(), id_x, size_x);
+    auto y_range = decomposeRange(task.yRange(), id_y, size_y);
+    auto z_range = decomposeRange(task.zRange(), id_z, size_z);
+    return {x_range, y_range, z_range};
+  }
+
+  XFDTD_CUDA_DEVICE static auto decomposeRange(IndexRange range, Index id,
+                                               Index size) -> IndexRange {
+    auto problem_size = range.size();
+    auto quotient = problem_size / size;
+    auto remainder = problem_size % size;
+    auto start = Index{range.start()};
+    auto end = Index{range.end()};
+
+    if (id < remainder) {
+      start += id * (quotient + 1);
+      end = start + quotient + 1;
+      return {start, end};
+    }
+
+    start += id * quotient + remainder;
+    end = start + quotient;
+    return {start, end};
+  }
+
+  template <typename T>
+  XFDTD_CUDA_DEVICE static constexpr auto columnMajorToRowMajor(
+      T index, T size_x, T size_y, T size_z) -> std::tuple<T, T, T> {
+    return std::make_tuple(index / (size_y * size_z),
+                           (index % (size_y * size_z)) / size_z,
+                           index % size_z);
+  }
 };
 
 }  // namespace xfdtd::cuda

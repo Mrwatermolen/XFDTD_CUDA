@@ -5,9 +5,7 @@
 #include <xfdtd_cuda/calculation_param/material_param.cuh>
 #include <xfdtd_cuda/calculation_param/time_param.cuh>
 
-namespace xfdtd {
-
-namespace cuda {
+namespace xfdtd::cuda {
 
 class CalculationParam {
   friend class CalculationParamHD;
@@ -47,8 +45,6 @@ class CalculationParam {
   FDTDCoefficient* _fdtd_coefficient{};
 };
 
-}  // namespace cuda
-
-}  // namespace xfdtd
+}  // namespace xfdtd::cuda
 
 #endif  // __XFDTD_CUDA_CALCULATION_PARAM_MATERIAL_PARAM_CUH__

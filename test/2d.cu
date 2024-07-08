@@ -1044,7 +1044,6 @@ void FDTD2d() {
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   printf("Duration: %ld ms\n", duration.count());
-  return;
   // copy back
   movie.copyDeviceToHost();
 
