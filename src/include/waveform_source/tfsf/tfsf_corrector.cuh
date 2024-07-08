@@ -54,8 +54,18 @@ class TFSFCorrector {
             ? 1
             : 0;
     constexpr auto offset_b = offset_a == 1 ? 0 : 1;
-    ae += offset_a;
-    be += offset_b;
+    if constexpr (offset_a == 1) {
+      if (ae == getEnd<dual_xyz_a>()) {
+        ae += offset_a;
+      }
+    }
+
+    if constexpr (offset_b == 1) {
+      if (be == getEnd<dual_xyz_b>()) {
+        be += offset_b;
+      }
+    }
+
     cs = (Axis::directionNegative<direction>()) ? cs : ce;
     ce = cs + 1;
 
@@ -68,28 +78,6 @@ class TFSFCorrector {
         return;
       }
     }
-
-    // if constexpr (direction == xfdtd::Axis::Direction::XN &&
-    //               attribute == xfdtd::EMF::Attribute::E &&
-    //               Axis::XYZ::Z == field_xyz) {
-    //   static bool is_print = false;
-    //   if (!is_print) {
-    //     auto block_id = blockIdx.x + blockIdx.y * gridDim.x +
-    //                     blockIdx.z * gridDim.x * gridDim.y;
-    //     auto thread_id = threadIdx.x + threadIdx.y * blockDim.x +
-    //                      threadIdx.z * blockDim.x * blockDim.y;
-    //     printf(
-    //         "TFSF EZ: blockIdx: (%d, %d, %d), threadIdx: (%d, %d, %d), "
-    //         "block_id: %d, "
-    //         "thread_id: %d. Task: [%lu, %lu), [%lu, %lu), [%lu, %lu)\n",
-    //         blockIdx.x, blockIdx.y, blockIdx.z, threadIdx.x, threadIdx.y,
-    //         threadIdx.z, block_id, thread_id, task.xRange().start(),
-    //         task.xRange().end(), task.yRange().start(), task.yRange().end(),
-    //         task.zRange().start(), task.zRange().end());
-
-    //     is_print = true;
-    //   }
-    // }
 
     // E in total field need add incident for forward H.
     // H in scattered field need deduct incident for backward E.
