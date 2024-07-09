@@ -99,4 +99,14 @@ auto TFSFCorrectorHD::getTFSFCorrector2DAgency() -> CorrectorAgency * {
   return _corrector_agency.get();
 }
 
+auto TFSFCorrectorHD::getTFSFCorrector3DAgency() -> CorrectorAgency * {
+  if (_corrector_agency != nullptr) {
+    throw std::runtime_error(
+        "TFSFCorrectorHD::getTFSFCorrector3DAgency: already created");
+  }
+
+  _corrector_agency = std::make_unique<TFSFCorrector3DAgency>(device());
+  return _corrector_agency.get();
+}
+
 }  // namespace xfdtd::cuda

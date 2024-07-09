@@ -1,6 +1,9 @@
 #include <xfdtd/boundary/pml.h>
 #include <xfdtd/common/type_define.h>
 #include <xfdtd/coordinate_system/coordinate_system.h>
+#include <xfdtd/electromagnetic_field/electromagnetic_field.h>
+#include <xfdtd/grid_space/grid_space.h>
+#include <xfdtd/monitor/field_monitor.h>
 #include <xfdtd/simulation/simulation.h>
 #include <xfdtd/waveform_source/tfsf.h>
 
@@ -15,6 +18,7 @@
 #include "boundary/pml_corrector_hd.cuh"
 #include "domain/domain_hd.cuh"
 #include "monitor/movie_monitor_hd.cuh"
+#include "updator/basic_updator_3d_hd.cuh"
 #include "updator/basic_updator_te_hd.cuh"
 #include "updator/updator_agency.cuh"
 #include "waveform_source/tfsf/tfsf_corrector_hd.cuh"
@@ -62,18 +66,41 @@ auto SimulationHD::run(Index time_step) -> void {
       xfdtd::cuda::IndexTask{IndexRange{0, _grid_space_hd->host()->sizeX()},
                              IndexRange{0, _grid_space_hd->host()->sizeY()},
                              IndexRange{0, _grid_space_hd->host()->sizeZ()}};
-  auto updator_hd = std::make_unique<BasicUpdatorTEHD>(
-      task, _grid_space_hd, _calculation_param_hd, _emf_hd);
-  updator_hd->copyHostToDevice();
-  auto domain_hd = std::make_unique<DomainHD>(
-      _grid_dim, _block_dim, _grid_space_hd, _calculation_param_hd, _emf_hd,
-      dynamic_cast<UpdatorAgency*>(updator_hd->getUpdatorAgency()));
+  std::unique_ptr<DomainHD> domain_hd = nullptr;
 
+  std::unique_ptr<BasicUpdatorTEHD> updator_te_hd = nullptr;
+  std::unique_ptr<BasicUpdator3DHD> updator_3d_hd = nullptr;
+
+  if (_grid_space_hd->host()->dimension() == xfdtd::GridSpace::Dimension::TWO) {
+    updator_te_hd = std::make_unique<BasicUpdatorTEHD>(
+        task, _grid_space_hd, _calculation_param_hd, _emf_hd);
+    updator_te_hd->copyHostToDevice();
+    domain_hd = std::make_unique<DomainHD>(
+        _grid_dim, _block_dim, _grid_space_hd, _calculation_param_hd, _emf_hd,
+        dynamic_cast<UpdatorAgency*>(updator_te_hd->getUpdatorAgency()));
+  } else {
+    updator_3d_hd = std::make_unique<BasicUpdator3DHD>(
+        task, _grid_space_hd, _calculation_param_hd, _emf_hd);
+    updator_3d_hd->copyHostToDevice();
+    domain_hd = std::make_unique<DomainHD>(
+        _grid_dim, _block_dim, _grid_space_hd, _calculation_param_hd, _emf_hd,
+        dynamic_cast<UpdatorAgency*>(updator_3d_hd->getUpdatorAgency()));
+  }
+
+  // TFSF
   addTFSFCorrectorHD(tfsf_hd);
-
   for (auto&& tfsf : tfsf_hd) {
     tfsf->copyHostToDevice();
-    domain_hd->addCorrector(tfsf->getTFSFCorrector2DAgency());
+    // domain_hd->addCorrector(tfsf->getTFSFCorrector2DAgency());
+    if (_grid_space_hd->host()->dimension() ==
+        xfdtd::GridSpace::Dimension::THREE) {
+      domain_hd->addCorrector(tfsf->getTFSFCorrector3DAgency());
+    } else if (_grid_space_hd->host()->dimension() ==
+               xfdtd::GridSpace::Dimension::TWO) {
+      domain_hd->addCorrector(tfsf->getTFSFCorrector2DAgency());
+    } else {
+      throw std::runtime_error("Invalid dimension");
+    }
   }
 
   // PML
@@ -99,20 +126,51 @@ auto SimulationHD::run(Index time_step) -> void {
     domain_hd->addCorrector(pml->getAgency());
   }
 
+  // Monitor
+  std::vector<std::unique_ptr<MovieMonitorHD<xfdtd::EMF::Field::EX>>>
+      movie_mointor_ex_hd;
+  std::vector<std::unique_ptr<MovieMonitorHD<xfdtd::EMF::Field::EY>>>
+      movie_mointor_ey_hd;
   std::vector<std::unique_ptr<MovieMonitorHD<xfdtd::EMF::Field::EZ>>>
-      movie_mointor_hd;
+      movie_mointor_ez_hd;
+
   for (auto&& m : host()->monitors()) {
     auto movie = dynamic_cast<xfdtd::MovieMonitor*>(m.get());
     if (movie == nullptr) {
       continue;
     }
 
-    // assume that only EZ is monitored
-    movie_mointor_hd.emplace_back(
-        std::make_unique<MovieMonitorHD<xfdtd::EMF::Field::EZ>>(movie,
-                                                                _emf_hd));
-    movie_mointor_hd.back()->copyHostToDevice();
-    domain_hd->addMonitor(movie_mointor_hd.back()->getAgency());
+    auto f = dynamic_cast<xfdtd::FieldMonitor*>(movie->frame().get());
+    if (f == nullptr) {
+      continue;
+    }
+
+    if (f->field() == xfdtd::EMF::Field::EX) {
+      movie_mointor_ex_hd.emplace_back(
+          std::make_unique<MovieMonitorHD<xfdtd::EMF::Field::EX>>(movie,
+                                                                  _emf_hd));
+      movie_mointor_ex_hd.back()->copyHostToDevice();
+      domain_hd->addMonitor(movie_mointor_ex_hd.back()->getAgency());
+      continue;
+    }
+
+    if (f->field() == xfdtd::EMF::Field::EY) {
+      movie_mointor_ey_hd.emplace_back(
+          std::make_unique<MovieMonitorHD<xfdtd::EMF::Field::EY>>(movie,
+                                                                  _emf_hd));
+      movie_mointor_ey_hd.back()->copyHostToDevice();
+      domain_hd->addMonitor(movie_mointor_ey_hd.back()->getAgency());
+      continue;
+    }
+
+    if (f->field() == xfdtd::EMF::Field::EZ) {
+      movie_mointor_ez_hd.emplace_back(
+          std::make_unique<MovieMonitorHD<xfdtd::EMF::Field::EZ>>(movie,
+                                                                  _emf_hd));
+      movie_mointor_ez_hd.back()->copyHostToDevice();
+      domain_hd->addMonitor(movie_mointor_ez_hd.back()->getAgency());
+      continue;
+    }
   }
 
   std::cout << "SimulationHD::run() - domain created \n";
@@ -121,8 +179,15 @@ auto SimulationHD::run(Index time_step) -> void {
   std::cout << "SimulationHD::run() - domain run \n";
   copyDeviceToHost();
   std::cout << "SimulationHD::run() - copyDeviceToHost \n";
-  for (auto&& m : movie_mointor_hd) {
-    std::cout << "SimulationHD::run() - output \n";
+  for (auto&& m : movie_mointor_ex_hd) {
+    m->copyDeviceToHost();
+    m->output();
+  }
+  for (auto&& m : movie_mointor_ey_hd) {
+    m->copyDeviceToHost();
+    m->output();
+  }
+  for (auto&& m : movie_mointor_ez_hd) {
     m->copyDeviceToHost();
     m->output();
   }
@@ -156,9 +221,9 @@ auto SimulationHD::addTFSFCorrectorHD(
       continue;
     }
 
-    auto tfsf_2d_hd = std::make_unique<TFSFCorrectorHD>(
+    auto hd = std::make_unique<TFSFCorrectorHD>(
         tfsf, _calculation_param_hd->device(), _emf_hd->device());
-    tfsf_hd.emplace_back(std::move(tfsf_2d_hd));
+    tfsf_hd.emplace_back(std::move(hd));
   }
 }
 

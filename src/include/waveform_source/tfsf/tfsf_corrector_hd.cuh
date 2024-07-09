@@ -40,6 +40,8 @@ class TFSFCorrectorHD
 
   auto getTFSFCorrector2DAgency() -> CorrectorAgency *;
 
+  auto getTFSFCorrector3DAgency() -> CorrectorAgency *;
+
  private:
   xfdtd::cuda::CalculationParam *_calculation_param;
   xfdtd::cuda::EMF *_emf;

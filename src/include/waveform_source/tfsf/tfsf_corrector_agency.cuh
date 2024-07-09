@@ -32,6 +32,15 @@ class TFSFCorrector2DAgency : public TFSFCorrectorAgency {
   auto correctH(dim3 grid_size, dim3 block_size) -> void override;
 };
 
+class TFSFCorrector3DAgency : public TFSFCorrectorAgency {
+ public:
+  using TFSFCorrectorAgency::TFSFCorrectorAgency;
+
+  auto correctE(dim3 grid_size, dim3 block_size) -> void override;
+
+  auto correctH(dim3 grid_size, dim3 block_size) -> void override;
+};
+
 }  // namespace xfdtd::cuda
 
 #endif  // __XFDTD_CUDA_TFSF_CORRECTOR_AGENCY_CUH__
