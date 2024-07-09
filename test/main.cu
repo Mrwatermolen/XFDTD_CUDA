@@ -18,18 +18,14 @@
 #include "xfdtd/monitor/field_monitor.h"
 #include "xfdtd/monitor/movie_monitor.h"
 #include "xfdtd/object/object.h"
-#include "xfdtd/parallel/mpi_support.h"
 #include "xfdtd/parallel/parallelized_config.h"
 #include "xfdtd/shape/cube.h"
 #include "xfdtd/shape/cylinder.h"
 #include "xfdtd/simulation/simulation.h"
 #include "xfdtd/waveform/waveform.h"
 #include "xfdtd/waveform_source/tfsf_2d.h"
-#include "xfdtd_cuda/calculation_param/fdtd_coefficient.cuh"
-#include "xfdtd_cuda/calculation_param/fdtd_coefficient_hd.cuh"
-#include "xfdtd_cuda/calculation_param/time_param.cuh"
 
-void cylinderScatter2D() {
+void cylinderScatter2D(dim3 grid_size, dim3 block_size) {
   constexpr double center_frequency{12e9};
   constexpr double max_frequency{20e9};
   constexpr double min_lambda{3e8 / max_frequency};
@@ -77,7 +73,7 @@ void cylinderScatter2D() {
                             -std::numeric_limits<double>::infinity()},
               xfdtd::Vector{325 * dx, 325 * dy, xfdtd::constant::INF}),
           xfdtd::EMF::Field::EZ, "", ""),
-      20, "movie", "./tmp/cylinder_scatter_2d")};
+      40, "movie", "./tmp/cylinder_scatter_2d")};
 
   // auto movie{std::make_shared<xfdtd::MovieMonitor>(
   //     std::make_unique<xfdtd::FieldMonitor>(
@@ -160,13 +156,17 @@ void cylinderScatter2D() {
     s_hd.host()->addObject(domain);
     s_hd.host()->addObject(cylinder);
     s_hd.host()->addWaveformSource(tfsf_2d);
-    s_hd.host()->addBoundary(std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::XN));
-    s_hd.host()->addBoundary(std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::XP));
-    s_hd.host()->addBoundary(std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::YN));
-    s_hd.host()->addBoundary(std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::YP));
+    s_hd.host()->addBoundary(
+        std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::XN));
+    s_hd.host()->addBoundary(
+        std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::XP));
+    s_hd.host()->addBoundary(
+        std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::YN));
+    s_hd.host()->addBoundary(
+        std::make_shared<xfdtd::PML>(10, xfdtd::Axis::Direction::YP));
     s_hd.host()->addMonitor(movie);
-    s_hd.setGridDim({4, 4, 1});
-    s_hd.setBlockDim(dim3{16, 16, 1});
+    s_hd.setGridDim(grid_size);
+    s_hd.setBlockDim(block_size);
     s_hd.run(1500);
     auto err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -183,6 +183,25 @@ void cylinderScatter2D() {
 }
 
 int main(int argc, char *argv[]) {
-  cylinderScatter2D();
+  unsigned int block_size_x = 16;
+  unsigned int block_size_y = 16;
+  unsigned int block_size_z = 1;
+  unsigned int grid_size_x = 1;
+  unsigned int grid_size_y = 1;
+  unsigned int grid_size_z = 1;
+  if (7 <= argc) {
+    block_size_x = atoi(argv[1]);
+    block_size_y = atoi(argv[2]);
+    block_size_z = atoi(argv[3]);
+    grid_size_x = atoi(argv[4]);
+    grid_size_y = atoi(argv[5]);
+    grid_size_z = atoi(argv[6]);
+  }
+  auto block_size = dim3{block_size_x, block_size_y, block_size_z};
+  auto grid_size = dim3{grid_size_x, grid_size_y, grid_size_z};
+  std::printf("Grid size: (%d, %d, %d), Block size: (%d, %d, %d)\n",
+              grid_size.x, grid_size.y, grid_size.z, block_size.x, block_size.y,
+              block_size.z);
+  cylinderScatter2D(grid_size, block_size);
   return 0;
 }

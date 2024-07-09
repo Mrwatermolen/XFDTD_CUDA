@@ -85,7 +85,7 @@ XFDTD_CUDA_DUAL inline auto update(xfdtd::cuda::EMF& emf,
 
   constexpr Size offset = attribute == xfdtd::EMF::Attribute::E ? -1 : 1;
 
-#define XFDTD_CUDA_IS_DEBUG 1
+#define XFDTD_CUDA_IS_DEBUG 0
 
   for (Size i = is; i < ie; ++i) {
     for (Size j = js; j < je; ++j) {

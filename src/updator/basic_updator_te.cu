@@ -19,20 +19,20 @@ XFDTD_CUDA_DEVICE auto BasicUpdatorTE::updateH() -> void {
   const auto ks = z_range.start();
   const auto ke = z_range.end();
 
-  static bool is_print = false;
-  if (!is_print) {
-    auto block_id = blockIdx.x + blockIdx.y * gridDim.x +
-                    blockIdx.z * gridDim.x * gridDim.y;
-    auto thread_id = threadIdx.x + threadIdx.y * blockDim.x +
-                     threadIdx.z * blockDim.x * blockDim.y;
-    std::printf(
-        "blockIdx: (%d, %d, %d), threadIdx: (%d, %d, %d), block_id: %d, "
-        "thread_id: %d, task:[%lu, %lu), [%lu, %lu), [%lu, %lu)\n",
-        blockIdx.x, blockIdx.y, blockIdx.z, threadIdx.x, threadIdx.y,
-        threadIdx.z, block_id, thread_id, is, ie, js, je, ks, ke);
+  // static bool is_print = false;
+  // if (!is_print) {
+  //   auto block_id = blockIdx.x + blockIdx.y * gridDim.x +
+  //                   blockIdx.z * gridDim.x * gridDim.y;
+  //   auto thread_id = threadIdx.x + threadIdx.y * blockDim.x +
+  //                    threadIdx.z * blockDim.x * blockDim.y;
+  //   std::printf(
+  //       "blockIdx: (%d, %d, %d), threadIdx: (%d, %d, %d), block_id: %d, "
+  //       "thread_id: %d, task:[%lu, %lu), [%lu, %lu), [%lu, %lu)\n",
+  //       blockIdx.x, blockIdx.y, blockIdx.z, threadIdx.x, threadIdx.y,
+  //       threadIdx.z, block_id, thread_id, is, ie, js, je, ks, ke);
 
-    is_print = true;
-  }
+  //   is_print = true;
+  // }
 
   update<xfdtd::EMF::Attribute::H, Axis::XYZ::X>(
       *_emf, *_calculation_param->fdtdCoefficient(), is, ie, js, je, ks, ke);

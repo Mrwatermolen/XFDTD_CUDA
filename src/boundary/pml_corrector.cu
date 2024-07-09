@@ -118,7 +118,7 @@ XFDTD_CUDA_DEVICE auto PMLCorrector<xyz>::correctE() -> void {
     auto [ae, be, ce] = transform::xYZToABC<Index, xyz>(
         _task.xRange().end(), _task.yRange().end(), _task.zRange().end());
 
-    if (c == ce) {
+    if (b == be) {
       auto [i, j, k] =
           transform::aBCToXYZ<Index, xyz>(a, b + 1, c + main_axis_offset);
       ie = i;
@@ -157,7 +157,7 @@ XFDTD_CUDA_DEVICE auto PMLCorrector<xyz>::correctE() -> void {
     auto [ae, be, ce] = transform::xYZToABC<Index, xyz>(
         _task.xRange().end(), _task.yRange().end(), _task.zRange().end());
 
-    if (c == ce) {
+    if (a == ae) {
       auto [i, j, k] =
           transform::aBCToXYZ<Index, xyz>(a + 1, b, c + main_axis_offset);
       ie = i;
@@ -215,7 +215,7 @@ XFDTD_CUDA_DEVICE auto PMLCorrector<xyz>::correctH() -> void {
     auto [ae, be, ce] = transform::xYZToABC<Index, xyz>(
         _task.xRange().end(), _task.yRange().end(), _task.zRange().end());
 
-    if (c == ce) {
+    if (a == ae) {
       auto [i, j, k] = transform::aBCToXYZ<Index, xyz>(a + 1, b, c);
       ie = i;
       je = j;
@@ -251,7 +251,7 @@ XFDTD_CUDA_DEVICE auto PMLCorrector<xyz>::correctH() -> void {
     auto [ae, be, ce] = transform::xYZToABC<Index, xyz>(
         _task.xRange().end(), _task.yRange().end(), _task.zRange().end());
 
-    if (c == ce) {
+    if (b == be) {
       auto [i, j, k] = transform::aBCToXYZ<Index, xyz>(a, b + 1, c);
       ie = i;
       je = j;
