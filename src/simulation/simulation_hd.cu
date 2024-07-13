@@ -4,6 +4,7 @@
 #include <xfdtd/electromagnetic_field/electromagnetic_field.h>
 #include <xfdtd/grid_space/grid_space.h>
 #include <xfdtd/monitor/field_monitor.h>
+#include <xfdtd/nffft/nffft_frequency_domain.h>
 #include <xfdtd/simulation/simulation.h>
 #include <xfdtd/waveform_source/tfsf.h>
 
@@ -18,6 +19,7 @@
 #include "boundary/pml_corrector_hd.cuh"
 #include "domain/domain_hd.cuh"
 #include "monitor/movie_monitor_hd.cuh"
+#include "nf2ff/frequency_domain/nf2ff_frequency_domain_hd.cuh"
 #include "updator/basic_updator_3d_hd.cuh"
 #include "updator/basic_updator_te_hd.cuh"
 #include "updator/updator_agency.cuh"
@@ -173,6 +175,16 @@ auto SimulationHD::run(Index time_step) -> void {
     }
   }
 
+  // NF2FF
+  auto nf2ff_fd_hd = getNF2FFFD();
+  for (auto&& nf2ff : nf2ff_fd_hd) {
+    nf2ff->copyHostToDevice();
+    for (auto&& agency : nf2ff->agencies()) {
+      domain_hd->addNF2FFFrequencyDomainAgency(agency);
+    }
+  }
+
+
   std::cout << "SimulationHD::run() - domain created \n";
 
   domain_hd->run();
@@ -191,7 +203,16 @@ auto SimulationHD::run(Index time_step) -> void {
     m->copyDeviceToHost();
     m->output();
   }
+  for (auto&& n : nf2ff_fd_hd) {
+    n->copyDeviceToHost();
+  } 
   std::cout << "SimulationHD::run() End!\n";
+  {
+    auto err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      std::cerr << "CUDA Error: " << cudaGetErrorString(err) << "\n";
+    }
+  }
 }
 
 auto SimulationHD::init(Index time_step) -> void {
@@ -249,6 +270,27 @@ auto SimulationHD::addPMLBoundaryHD(
     auto pml_corrector = std::make_unique<PMLCorrectorHD<xyz>>(pml, _emf_hd);
     pml_corrector_hd.emplace_back(std::move(pml_corrector));
   }
+}
+
+auto SimulationHD::getNF2FFFD()
+    -> std::vector<std::unique_ptr<NF2FFFrequencyDomainHD>> {
+  auto nf2ffs = host()->nf2ffs();
+  if (nf2ffs.size() == 0) {
+    return {};
+  }
+
+  std::vector<std::unique_ptr<NF2FFFrequencyDomainHD>> nf2ff_fd_hd;
+  for (const auto& n : nf2ffs) {
+    auto fd = dynamic_cast<xfdtd::NFFFTFrequencyDomain*>(n.get());
+    if (fd == nullptr) {
+      continue;
+    }
+
+    nf2ff_fd_hd.emplace_back(std::make_unique<NF2FFFrequencyDomainHD>(
+        fd, _grid_space_hd, _calculation_param_hd, _emf_hd));
+  }
+
+  return nf2ff_fd_hd;
 }
 
 }  // namespace xfdtd::cuda

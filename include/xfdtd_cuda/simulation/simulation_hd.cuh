@@ -24,6 +24,8 @@ class TFSFCorrectorHD;
 template <xfdtd::Axis::XYZ xyz>
 class PMLCorrectorHD;
 
+class NF2FFFrequencyDomainHD;
+
 class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
  public:
   SimulationHD(xfdtd::Simulation* host);
@@ -58,6 +60,8 @@ class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
   template <xfdtd::Axis::XYZ xyz>
   auto addPMLBoundaryHD(std::vector<std::unique_ptr<PMLCorrectorHD<xyz>>>&
                             pml_corrector_hd) -> void;
+
+  auto getNF2FFFD()-> std::vector<std::unique_ptr<NF2FFFrequencyDomainHD>>;
 };
 };  // namespace xfdtd::cuda
 
