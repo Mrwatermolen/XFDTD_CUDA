@@ -5,6 +5,7 @@
 #include <xfdtd/grid_space/grid_space.h>
 #include <xfdtd/monitor/field_monitor.h>
 #include <xfdtd/nffft/nffft_frequency_domain.h>
+#include <xfdtd/nffft/nffft_time_domain.h>
 #include <xfdtd/simulation/simulation.h>
 #include <xfdtd/waveform_source/tfsf.h>
 
@@ -20,6 +21,7 @@
 #include "domain/domain_hd.cuh"
 #include "monitor/movie_monitor_hd.cuh"
 #include "nf2ff/frequency_domain/nf2ff_frequency_domain_hd.cuh"
+#include "nf2ff/time_domain/nf2ff_time_domain_hd.cuh"
 #include "updator/basic_updator_3d_hd.cuh"
 #include "updator/basic_updator_te_hd.cuh"
 #include "updator/updator_agency.cuh"
@@ -183,7 +185,11 @@ auto SimulationHD::run(Index time_step) -> void {
       domain_hd->addNF2FFFrequencyDomainAgency(agency);
     }
   }
-
+  auto nf2ff_td_hd = getNF2FFTD();
+  for (auto&& nf2ff : nf2ff_td_hd) {
+    nf2ff->copyHostToDevice();
+    domain_hd->addNF2FFTimeDoaminAgency(nf2ff->agency());
+  }
 
   std::cout << "SimulationHD::run() - domain created \n";
 
@@ -205,7 +211,10 @@ auto SimulationHD::run(Index time_step) -> void {
   }
   for (auto&& n : nf2ff_fd_hd) {
     n->copyDeviceToHost();
-  } 
+  }
+  for (auto&& n : nf2ff_td_hd) {
+    n->copyDeviceToHost();
+  }
   std::cout << "SimulationHD::run() End!\n";
   {
     auto err = cudaGetLastError();
@@ -291,6 +300,31 @@ auto SimulationHD::getNF2FFFD()
   }
 
   return nf2ff_fd_hd;
+}
+
+auto SimulationHD::getNF2FFTD()
+    -> std::vector<std::unique_ptr<NF2FFTimeDomainHD>> {
+  auto nf2ffs = host()->nf2ffs();
+  if (nf2ffs.size() == 0) {
+    return {};
+  }
+
+  std::vector<std::unique_ptr<NF2FFTimeDomainHD>> nf2ff_td_hd;
+  for (const auto& n : nf2ffs) {
+    auto td = dynamic_cast<xfdtd::NFFFTTimeDomain*>(n.get());
+    if (td == nullptr) {
+      continue;
+    }
+
+    nf2ff_td_hd.emplace_back(std::make_unique<NF2FFTimeDomainHD>(
+        td, _grid_space_hd, _calculation_param_hd, _emf_hd));
+  }
+  if (!nf2ff_td_hd.empty()) {
+    std::cerr << "Warning: NF2FFTimeDomainHD is not implemented for parallel "
+                 "processing\n";
+  }
+
+  return nf2ff_td_hd;
 }
 
 }  // namespace xfdtd::cuda

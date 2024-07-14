@@ -21,6 +21,7 @@ template <xfdtd::EMF::Field F>
 class MovieMonitorAgency;
 
 class NF2FFFrequencyDomainAgency;
+class NF2FFTimeDoaminAgency;
 
 class DomainHD {
  public:
@@ -53,6 +54,8 @@ class DomainHD {
 
   auto addNF2FFFrequencyDomainAgency(NF2FFFrequencyDomainAgency* agency) -> void;
 
+  auto addNF2FFTimeDoaminAgency(NF2FFTimeDoaminAgency* agency) -> void;
+
  private:
   dim3 _grid_dim;
   dim3 _block_dim;
@@ -63,6 +66,7 @@ class DomainHD {
   std::vector<CorrectorAgency*> _correctors;
   std::vector<MonitorAgency*> _monitors;
   std::vector<NF2FFFrequencyDomainAgency*> _nf2ff_agencies;
+  std::vector<NF2FFTimeDoaminAgency*> _nf2ff_time_agencies;
 };
 
 }  // namespace xfdtd::cuda

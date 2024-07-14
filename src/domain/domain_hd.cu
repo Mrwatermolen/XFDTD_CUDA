@@ -13,6 +13,7 @@
 #include "domain/domain_hd.cuh"
 #include "monitor/monitor_agency.cuh"
 #include "nf2ff/frequency_domain/nf2ff_frequency_domain_agency.cuh"
+#include "nf2ff/time_domain/nf2ff_time_domain_agency.cuh"
 #include "updator/updator_agency.cuh"
 
 namespace xfdtd::cuda {
@@ -66,6 +67,10 @@ auto DomainHD::record() -> void {
   for (auto nf2ff : _nf2ff_agencies) {
     nf2ff->update(_grid_dim, _block_dim);
   }
+
+  for (auto nf2ff : _nf2ff_time_agencies) {
+    nf2ff->update(_grid_dim, _block_dim);
+  }
 }
 
 auto DomainHD::nextStep() -> void {
@@ -89,6 +94,10 @@ auto DomainHD::addMonitor(MonitorAgency* monitor) -> void {
 auto DomainHD::addNF2FFFrequencyDomainAgency(NF2FFFrequencyDomainAgency* agency)
     -> void {
   _nf2ff_agencies.push_back(agency);
+}
+
+auto DomainHD::addNF2FFTimeDoaminAgency(NF2FFTimeDoaminAgency* agency) -> void {
+  _nf2ff_time_agencies.push_back(agency);
 }
 
 }  // namespace xfdtd::cuda

@@ -5,6 +5,7 @@
 #include <xfdtd/monitor/field_monitor.h>
 #include <xfdtd/monitor/movie_monitor.h>
 #include <xfdtd/nffft/nffft_frequency_domain.h>
+#include <xfdtd/nffft/nffft_time_domain.h>
 #include <xfdtd/object/object.h>
 #include <xfdtd/shape/sphere.h>
 #include <xfdtd/simulation/simulation.h>
@@ -67,7 +68,11 @@ auto dielectricSphereScatter(dim3 grid_dim, dim3 block_dim) -> void {
       nffft_start, nffft_start, nffft_start, xt::xarray<double>{1e9},
       (data_path / "fd").string())};
 
+  //   auto nffft_td = std::make_shared<xfdtd::NFFFTTimeDomain>(
+  //       nffft_start, nffft_start, nffft_start, (data_path / "td").string(),
+  //       -xfdtd::constant::PI, 0);
   s.addNF2FF(nffft_fd);
+  //   s.addNF2FF(nffft_td);
 
   auto s_hd = xfdtd::cuda::SimulationHD{&s};
   s_hd.setGridDim(grid_dim);
@@ -83,6 +88,9 @@ auto dielectricSphereScatter(dim3 grid_dim, dim3 block_dim) -> void {
   nffft_fd->processFarField(
       xt::linspace<double>(-xfdtd::constant::PI, xfdtd::constant::PI, 360),
       xfdtd::constant::PI * 0.5, "yz");
+
+  //   nffft_td->setOutputDir((data_path / "td").string());
+  //   nffft_td->processFarField();
   std::chrono::high_resolution_clock::time_point end_time =
       std::chrono::high_resolution_clock::now();
 
