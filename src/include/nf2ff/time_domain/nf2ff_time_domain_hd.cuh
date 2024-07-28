@@ -12,12 +12,12 @@
 #include <xfdtd_cuda/host_device_carrier.cuh>
 #include <xfdtd_cuda/tensor_hd.cuh>
 
+#include "nf2ff/time_domain/nf2ff_time_domain_agency.cuh"
+
 namespace xfdtd::cuda {
 
 template <xfdtd::Axis::Direction D>
 class NF2FFTImeDomainData;
-
-class NF2FFTimeDoaminAgency;
 
 struct SurfaceCurrentSetTD;
 
@@ -47,7 +47,7 @@ class NF2FFTimeDomainHD
   std::shared_ptr<const CalculationParamHD> _calculation_param_hd{};
   std::shared_ptr<const EMFHD> _emf_hd{};
 
-  std::unique_ptr<SurfaceCurrentSetTD> _surface_current_set{};
+  SurfaceCurrentSetTD* _surface_current_set{};
   std::unique_ptr<NF2FFTimeDoaminAgency> _agency{};
 };
 

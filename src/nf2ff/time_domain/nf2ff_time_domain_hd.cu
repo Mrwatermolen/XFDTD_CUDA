@@ -203,11 +203,17 @@ NF2FFTimeDomainHD::NF2FFTimeDomainHD(
       _grid_space_hd{grid_space_hd},
       _calculation_param_hd{calculation_param_hd},
       _emf_hd{emf_hd},
-      _surface_current_set{std::make_unique<SurfaceCurrentSetTD>(
+      _surface_current_set{new SurfaceCurrentSetTD(
           host, grid_space_hd->device(), calculation_param_hd->device(),
           emf_hd->device())} {}
 
-NF2FFTimeDomainHD::~NF2FFTimeDomainHD() { releaseDevice(); }
+NF2FFTimeDomainHD::~NF2FFTimeDomainHD() {
+  releaseDevice();
+  if (_surface_current_set != nullptr) {
+    delete _surface_current_set;
+    _surface_current_set = nullptr;
+  }
+}
 
 auto NF2FFTimeDomainHD::copyHostToDevice() -> void {
   _surface_current_set->copyHostToDevice();

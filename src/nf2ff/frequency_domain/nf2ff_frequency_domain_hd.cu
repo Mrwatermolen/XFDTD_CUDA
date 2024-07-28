@@ -123,15 +123,15 @@ struct SurfaceCurrent : HostDeviceCarrier<void, NF2FFFrequencyDomainData<D>> {
       *_transform_h_device{nullptr};
 };
 
-XFDTD_CUDA_GLOBAL void __test(auto a) {
-  for (Index i = 0; i < 5; ++i) {
-    std::printf("a: h.real() = %.5e, h.imag() = %e\n", a->data()[i].real(),
-                a->data()[i].imag());
-    auto b = (*a)(i) * static_cast<Real>(i);
-    std::printf("i:%f b: h.real() = %f, b.imag() = %f\n", static_cast<Real>(i),
-                b.real(), b.imag());
-  }
-}
+// XFDTD_CUDA_GLOBAL void __test(auto a) {
+//   for (Index i = 0; i < 5; ++i) {
+//     std::printf("a: h.real() = %.5e, h.imag() = %e\n", a->data()[i].real(),
+//                 a->data()[i].imag());
+//     auto b = (*a)(i) * static_cast<Real>(i);
+//     std::printf("i:%f b: h.real() = %f, b.imag() = %f\n", static_cast<Real>(i),
+//                 b.real(), b.imag());
+//   }
+// }
 
 struct SurfaceCurrentSet : public HostDeviceCarrier<void, void> {
   SurfaceCurrentSet(NFFFTFrequencyDomain* nf2ff, Index i,
