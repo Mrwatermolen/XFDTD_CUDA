@@ -27,11 +27,10 @@ auto benchmarkOnlyUpdator(dim3 grid_dim, dim3 block_dim) {
       std::make_unique<xfdtd::Cube>(xfdtd::Vector{-0.175, -0.175, -0.175},
                                     xfdtd::Vector{0.35, 0.35, 0.35}),
       xfdtd::Material::createAir())};
-    std::cout << "Size: " << 0.35 / dl << "\n";
+  std::cout << "Size: " << 0.35 / dl << "\n";
 
   auto s{xfdtd::Simulation{dl, dl, dl, 0.9, xfdtd::ThreadConfig{1, 1, 1}}};
   s.addObject(domain);
-
 
   auto s_hd = xfdtd::cuda::SimulationHD{&s};
   s_hd.setGridDim(grid_dim);
@@ -48,8 +47,55 @@ auto benchmarkOnlyUpdator(dim3 grid_dim, dim3 block_dim) {
   std::cout << "Elapsed time: " << time_span.count() / 1000 << " s\n";
 }
 
+auto benchmarkUpdaterAndTFSF(dim3 grid_dim, dim3 block_dim) {
+  constexpr double dl{2.5e-3};
+  using namespace std::string_view_literals;
+  constexpr auto data_path_str = "./tmp/dielectric_sphere_scatter"sv;
+  const auto data_path = std::filesystem::path{data_path_str};
+
+  auto domain{std::make_shared<xfdtd::Object>(
+      "domain",
+      std::make_unique<xfdtd::Cube>(xfdtd::Vector{-0.175, -0.175, -0.175},
+                                    xfdtd::Vector{0.35, 0.35, 0.35}),
+      xfdtd::Material::createAir())};
+  std::cout << "Size: " << 0.35 / dl << "\n";
+
+  auto s{xfdtd::Simulation{dl, dl, dl, 0.9, xfdtd::ThreadConfig{1, 1, 1}}};
+  s.addObject(domain);
+
+  constexpr auto l_min{dl * 20};
+  // constexpr auto f_max{3e8 / l_min};  // max frequency: 5 GHz in dl = 3e-3
+  constexpr auto tau{l_min / 6e8};
+  constexpr auto t_0{4.5 * tau};
+  constexpr std::size_t tfsf_start{static_cast<std::size_t>(15)};
+  auto tfsf{
+      std::make_shared<xfdtd::TFSF3D>(tfsf_start, tfsf_start, tfsf_start, 0, 0,
+                                      0, xfdtd::Waveform::gaussian(tau, t_0))};
+  s.addWaveformSource(tfsf);
+
+  auto s_hd = xfdtd::cuda::SimulationHD{&s};
+  s_hd.setGridDim(grid_dim);
+  s_hd.setBlockDim(block_dim);
+  std::chrono::high_resolution_clock::time_point start_time =
+      std::chrono::high_resolution_clock::now();
+  s_hd.run(2400);
+
+  std::chrono::high_resolution_clock::time_point end_time =
+      std::chrono::high_resolution_clock::now();
+
+  std::chrono::duration<double, std::milli> time_span = end_time - start_time;
+  std::cout << "Elapsed time: " << time_span.count() << " ms\n";
+  std::cout << "Elapsed time: " << time_span.count() / 1000 << " s\n";
+  std::cout << "Total number of grid: "
+            << (0.35 / dl) * (0.35 / dl) * (0.35 / dl) << "\n";
+  std::cout << "Per second for grid: "
+            << 2400 * (0.35 / dl) * (0.35 / dl) * (0.35 / dl) /
+                   (time_span.count() / 1000)
+            << "\n";
+}
+
 int main(int argc, char** argv) {
-      dim3 grid_dim{4, 4, 4};
+  dim3 grid_dim{4, 4, 4};
   dim3 block_dim{8, 8, 8};
 
   if (7 <= argc) {
@@ -65,6 +111,7 @@ int main(int argc, char** argv) {
             << grid_dim.z << "), Block size: (" << block_dim.x << ", "
             << block_dim.y << ", " << block_dim.z << ")\n";
 
-    benchmarkOnlyUpdator(grid_dim, block_dim);
-    return 0;
+  // benchmarkOnlyUpdator(grid_dim, block_dim);
+  benchmarkUpdaterAndTFSF(grid_dim, block_dim);
+  return 0;
 }

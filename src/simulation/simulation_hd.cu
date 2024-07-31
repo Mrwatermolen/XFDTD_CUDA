@@ -193,7 +193,11 @@ auto SimulationHD::run(Index time_step) -> void {
 
   std::cout << "SimulationHD::run() - domain created \n";
 
+  auto strat_point = std::chrono::high_resolution_clock::now();
   domain_hd->run();
+  auto end_point = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> time_span = end_point - strat_point;
+  std::cout << "Elapsed time: " << time_span.count() << " ms\n";
   std::cout << "SimulationHD::run() - domain run \n";
   copyDeviceToHost();
   std::cout << "SimulationHD::run() - copyDeviceToHost \n";
