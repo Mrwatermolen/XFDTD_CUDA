@@ -11,3 +11,4 @@ add_executable(device_query device_query.cu)
 
 add_executable(benchmark benchmark.cu)
 target_link_libraries(benchmark PRIVATE xfdtd_cuda)
+target_include_directories(benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
