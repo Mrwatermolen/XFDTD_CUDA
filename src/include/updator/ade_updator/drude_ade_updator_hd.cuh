@@ -6,6 +6,7 @@
 
 #include "updator/ade_updator/ade_updator_hd.cuh"
 #include "updator/ade_updator/drude_ade_updator.cuh"
+#include "updator/updator_agency.cuh"
 
 namespace xfdtd::cuda {
 
@@ -14,7 +15,6 @@ class EMFHD;
 class GridSpaceHD;
 class DrudeADEMethodStorageHD;
 
-class UpdatorAgency;
 class DrudeADEUpdatorAgency;
 
 class DrudeADEUpdatorHD : public ADEUpdatorHD {
@@ -31,9 +31,7 @@ class DrudeADEUpdatorHD : public ADEUpdatorHD {
 
   auto copyHostToDevice() -> void override;
 
-  auto copyDeviceToHost() -> void override;
-
-  auto releaseDevice() -> void override;
+  // auto releaseDevice() -> void override;
 
   auto getUpdatorAgency() -> UpdatorAgency* override;
 

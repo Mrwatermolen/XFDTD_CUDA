@@ -7,6 +7,7 @@
 #include "updator/ade_updator/ade_updator_hd.cuh"
 #include "updator/ade_updator/drude_ade_updator_agency.cuh"
 #include "updator/ade_updator/drude_ade_updator_hd.cuh"
+#include "updator/updator_agency.cuh"
 
 namespace xfdtd::cuda {
 
@@ -17,22 +18,31 @@ DrudeADEUpdatorHD::DrudeADEUpdatorHD(
     std::shared_ptr<DrudeADEMethodStorageHD> storage_hd)
     : ADEUpdatorHD{task, std::move(grid_space_hd),
                    std::move(calculation_param_hd), std::move(emf_hd),
-                   std::move(storage_hd)} {}
+                   std::move(storage_hd)} {
+  static_assert(sizeof(DrudeADEUpdator) == sizeof(ADEUpdator),
+                "Size of DrudeADEUpdator is not equal to size of ADEUpdator");
+}
 
 DrudeADEUpdatorHD::~DrudeADEUpdatorHD() = default;
 
 auto DrudeADEUpdatorHD::copyHostToDevice() -> void {
-  auto device = Device{};
-  device._node_task = _task;
-  device._calculation_param = _calculation_param_hd->device();
-  device._emf = _emf_hd->device();
-  device._ade_method_storage = _storage_hd->device();
+  auto device =
+      Device{task(), gridSpaceHD()->device(), calculationParamHD()->device(),
+             emfHD()->device(),
+             static_cast<DrudeADEMethodStorage*>(storageHD()->device())};
   this->copyToDevice(&device);
 }
 
-auto DrudeADEUpdatorHD::copyDeviceToHost() -> void {}
-
-auto DrudeADEUpdatorHD::releaseDevice() -> void {}
+// auto DrudeADEUpdatorHD::releaseDevice() -> void {
+//   static_assert(sizeof(DrudeADEUpdator) == sizeof(ADEUpdator),
+//                 "Size of DrudeADEUpdator is not equal to size of
+//                 ADEUpdator");
+//   auto device = static_cast<DrudeADEUpdator*>(this->device());
+//   if (device != nullptr) {
+//     delete device;
+//     this->setDevice(nullptr);
+//   }
+// }
 
 auto DrudeADEUpdatorHD::getUpdatorAgency() -> UpdatorAgency* {
   if (_agency == nullptr) {

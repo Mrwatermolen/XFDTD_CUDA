@@ -1,8 +1,6 @@
 #ifndef __XFDTD_CUDA_BASIC_UPDATOR_TE_AGENCY__
 #define __XFDTD_CUDA_BASIC_UPDATOR_TE_AGENCY__
 
-#include <xfdtd_cuda/common.cuh>
-
 #include "updator/updator_agency.cuh"
 
 namespace xfdtd::cuda {

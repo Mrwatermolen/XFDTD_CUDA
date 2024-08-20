@@ -18,7 +18,9 @@ set(XFDTD_CUDA_LIBS
   xfdtd_cuda_grid_space xfdtd_cuda_calculation_param xfdtd_cuda_domain xfdtd_cuda_monitor
   xfdtd_cuda_material
   xfdtd_cuda_nf2ff
-  xfdtd_cuda_simulation xfdtd_cuda_tfsf xfdtd_cuda_updator)
+  xfdtd_cuda_simulation xfdtd_cuda_tfsf
+  xfdtd_cuda_basic_updator
+  xfdtd_cuda_ade_updator)
 
 target_link_libraries(xfdtd_cuda PUBLIC xfdtd::xfdtd_core ${XFDTD_CUDA_LIBS})
 

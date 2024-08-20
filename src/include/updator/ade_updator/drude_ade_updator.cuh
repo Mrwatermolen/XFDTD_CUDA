@@ -9,8 +9,6 @@
 
 namespace xfdtd::cuda {
 
-class CalculationParam;
-class EMF;
 class DrudeADEMethodStorage;
 
 class DrudeADEUpdator : public ADEUpdator {
@@ -19,6 +17,10 @@ class DrudeADEUpdator : public ADEUpdator {
   friend class TemplateADEUpdateScheme;
 
  public:
+  DrudeADEUpdator(IndexTask task, GridSpace* grid_space,
+                  CalculationParam* calculation_param, EMF* emf,
+                  DrudeADEMethodStorage* storage);
+
   XFDTD_CUDA_DEVICE auto updateE() -> void;
 
  private:
@@ -38,7 +40,9 @@ class DrudeADEUpdator : public ADEUpdator {
     return 0.0;
   }
 
-  XFDTD_CUDA_DEVICE auto coeffEPrev(Index i, Index j, Index k) const -> Real { return 0.0; }
+  XFDTD_CUDA_DEVICE auto coeffEPrev(Index i, Index j, Index k) const -> Real {
+    return 0.0;
+  }
 };
 
 }  // namespace xfdtd::cuda
