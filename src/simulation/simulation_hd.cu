@@ -21,15 +21,16 @@
 #include "boundary/pml_corrector_hd.cuh"
 #include "domain/domain_hd.cuh"
 #include "material/ade_method/ade_method_hd.cuh"
+#include "material/ade_method/debye_ade_method_hd.cuh"
 #include "material/ade_method/drude_ade_method_hd.cuh"
 #include "monitor/movie_monitor_hd.cuh"
 #include "nf2ff/frequency_domain/nf2ff_frequency_domain_hd.cuh"
 #include "nf2ff/time_domain/nf2ff_time_domain_hd.cuh"
 #include "updator/ade_updator/ade_updator_hd.cuh"
+#include "updator/ade_updator/debye_ade_updator_hd.cuh"
 #include "updator/ade_updator/drude_ade_updator_hd.cuh"
 #include "updator/basic_updator/basic_updator_3d_hd.cuh"
 #include "updator/basic_updator/basic_updator_te_hd.cuh"
-#include "updator/updator_agency.cuh"
 #include "waveform_source/tfsf/tfsf_corrector_hd.cuh"
 #include "xfdtd_cuda/index_task.cuh"
 
@@ -344,14 +345,28 @@ auto SimulationHD::makeADEMethodStorageHD()
   // return
   // std::make_unique<ADEMethodStorageHD>(host()->aDEMethodStorage().get());
   auto host_storage = host()->aDEMethodStorage();
-  // is drude method
-  auto host_drude_storage =
-      std::dynamic_pointer_cast<xfdtd::DrudeADEMethodStorage>(host_storage);
-  if (host_drude_storage != nullptr) {
-    return std::make_unique<DrudeADEMethodStorageHD>(host_drude_storage.get());
+
+  {  // is drude method
+    auto host_drude_storage =
+        std::dynamic_pointer_cast<xfdtd::DrudeADEMethodStorage>(host_storage);
+    if (host_drude_storage != nullptr) {
+      return std::make_unique<DrudeADEMethodStorageHD>(
+          host_drude_storage.get());
+    }
   }
 
-  throw std::runtime_error("Invalid ADEMethodStorage");
+  {
+    auto host_debye_storage =
+        std::dynamic_pointer_cast<xfdtd::DebyeADEMethodStorage>(host_storage);
+    if (host_debye_storage != nullptr) {
+      return std::make_unique<DebyeADEMethodStorageHD>(
+          host_debye_storage.get());
+    }
+  }
+
+  throw std::runtime_error(
+      "XFDTD CUDA SimulationHD::makeADEMethodStorageHD: "
+      "Invalid ADEMethodStorage");
 }
 
 auto SimulationHD::makeDomainHD(
@@ -417,11 +432,24 @@ auto SimulationHD::makeADEUpdatorHD(IndexTask task)
     return {};
   }
 
-  auto drude_storage_hd = std::dynamic_pointer_cast<DrudeADEMethodStorageHD>(
-      _ade_method_storage_hd);
-  if (drude_storage_hd != nullptr) {
-    return std::make_unique<DrudeADEUpdatorHD>(
-        task, _grid_space_hd, _calculation_param_hd, _emf_hd, drude_storage_hd);
+  {
+    auto drude_storage_hd = std::dynamic_pointer_cast<DrudeADEMethodStorageHD>(
+        _ade_method_storage_hd);
+    if (drude_storage_hd != nullptr) {
+      return std::make_unique<DrudeADEUpdatorHD>(task, _grid_space_hd,
+                                                 _calculation_param_hd, _emf_hd,
+                                                 drude_storage_hd);
+    }
+  }
+
+  {
+    auto debye_storage_hd = std::dynamic_pointer_cast<DebyeADEMethodStorageHD>(
+        _ade_method_storage_hd);
+    if (debye_storage_hd != nullptr) {
+      return std::make_unique<DebyeADEUpdatorHD>(task, _grid_space_hd,
+                                                 _calculation_param_hd, _emf_hd,
+                                                 debye_storage_hd);
+    }
   }
 
   throw std::runtime_error(

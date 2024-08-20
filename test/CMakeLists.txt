@@ -16,3 +16,7 @@ target_include_directories(benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
 add_executable(drude_sphere_scatter ./dispersive_sphere_scatter/drude_sphere_scatter.cu)
 target_link_libraries(drude_sphere_scatter PRIVATE xfdtd_cuda)
 target_include_directories(drude_sphere_scatter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ./dispersive_sphere_scatter)
+
+add_executable(debye_sphere_scatter ./dispersive_sphere_scatter/debye_sphere_scatter.cu)
+target_link_libraries(debye_sphere_scatter PRIVATE xfdtd_cuda)
+target_include_directories(debye_sphere_scatter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ./dispersive_sphere_scatter)

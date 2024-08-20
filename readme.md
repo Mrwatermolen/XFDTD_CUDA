@@ -194,6 +194,6 @@ We are still working on the CUDA acceleration for the FDTD algorithm. The follow
 * Near to Far Field Transformation: Frequency Domain: ✅ Time Domain: ❌
 * TFSF Source: ✅
 * 3D Objects: ✅
-* Partial dispersion medium model: Drude Model: ✅. (Lorentz Model: ❌, Debye Model: ❌)
+* Partial dispersion medium model: Drude Model: ✅, Debye Model: ✅.(Lorentz Model: ❌)
 
 And more features are coming soon.
