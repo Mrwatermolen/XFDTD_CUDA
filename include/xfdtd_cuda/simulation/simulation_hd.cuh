@@ -27,9 +27,11 @@ class PMLCorrectorHD;
 class NF2FFFrequencyDomainHD;
 class NF2FFTimeDomainHD;
 
+class ADEMethodStorageHD;
+
 class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
  public:
-  SimulationHD(xfdtd::Simulation* host);
+  explicit SimulationHD(xfdtd::Simulation* host);
 
   ~SimulationHD() override;
 
@@ -55,6 +57,8 @@ class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
   std::shared_ptr<CalculationParamHD> _calculation_param_hd{};
   std::shared_ptr<EMFHD> _emf_hd{};
 
+  std::shared_ptr<ADEMethodStorageHD> _ade_method_storage_hd;
+
   auto addTFSFCorrectorHD(
       std::vector<std::unique_ptr<TFSFCorrectorHD>>& tfsf_hd) -> void;
 
@@ -65,6 +69,8 @@ class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
   auto getNF2FFFD()-> std::vector<std::unique_ptr<NF2FFFrequencyDomainHD>>;
 
   auto getNF2FFTD() -> std::vector<std::unique_ptr<NF2FFTimeDomainHD>>;
+
+  auto makeADEMethodStorageHD() -> std::unique_ptr<ADEMethodStorageHD>;
 };
 };  // namespace xfdtd::cuda
 

@@ -3,6 +3,7 @@
 #include <xfdtd/coordinate_system/coordinate_system.h>
 #include <xfdtd/electromagnetic_field/electromagnetic_field.h>
 #include <xfdtd/grid_space/grid_space.h>
+#include <xfdtd/material/ade_method/drude_ade_method.h>
 #include <xfdtd/monitor/field_monitor.h>
 #include <xfdtd/nffft/nffft_frequency_domain.h>
 #include <xfdtd/nffft/nffft_time_domain.h>
@@ -19,9 +20,13 @@
 
 #include "boundary/pml_corrector_hd.cuh"
 #include "domain/domain_hd.cuh"
+#include "material/ade_method/ade_method_hd.cuh"
+#include "material/ade_method/drude_ade_method_hd.cuh"
 #include "monitor/movie_monitor_hd.cuh"
 #include "nf2ff/frequency_domain/nf2ff_frequency_domain_hd.cuh"
 #include "nf2ff/time_domain/nf2ff_time_domain_hd.cuh"
+#include "updator/ade_updator/ade_updator_hd.cuh"
+#include "updator/ade_updator/drude_ade_updator_hd.cuh"
 #include "updator/basic_updator_3d_hd.cuh"
 #include "updator/basic_updator_te_hd.cuh"
 #include "updator/updator_agency.cuh"
@@ -41,6 +46,10 @@ auto SimulationHD::copyHostToDevice() -> void {
   _grid_space_hd->copyHostToDevice();
   _calculation_param_hd->copyHostToDevice();
   _emf_hd->copyHostToDevice();
+
+  if (_ade_method_storage_hd != nullptr) {
+    _ade_method_storage_hd->copyHostToDevice();
+  }
 }
 
 auto SimulationHD::copyDeviceToHost() -> void {
@@ -51,12 +60,20 @@ auto SimulationHD::copyDeviceToHost() -> void {
   _grid_space_hd->copyDeviceToHost();
   _calculation_param_hd->copyDeviceToHost();
   _emf_hd->copyDeviceToHost();
+
+  if (_ade_method_storage_hd != nullptr) {
+    _ade_method_storage_hd->copyDeviceToHost();
+  }
 }
 
 auto SimulationHD::releaseDevice() -> void {
   _grid_space_hd->releaseDevice();
   _calculation_param_hd->releaseDevice();
   _emf_hd->releaseDevice();
+
+  if (_ade_method_storage_hd != nullptr) {
+    _ade_method_storage_hd->releaseDevice();
+  }
 }
 
 auto SimulationHD::run(Index time_step) -> void {
@@ -70,10 +87,13 @@ auto SimulationHD::run(Index time_step) -> void {
       xfdtd::cuda::IndexTask{IndexRange{0, _grid_space_hd->host()->sizeX()},
                              IndexRange{0, _grid_space_hd->host()->sizeY()},
                              IndexRange{0, _grid_space_hd->host()->sizeZ()}};
+  // Create domain
+
   std::unique_ptr<DomainHD> domain_hd = nullptr;
 
   std::unique_ptr<BasicUpdatorTEHD> updator_te_hd = nullptr;
   std::unique_ptr<BasicUpdator3DHD> updator_3d_hd = nullptr;
+  std::unique_ptr<ADEUpdatorHD> ade_updator_hd = nullptr;
 
   if (_grid_space_hd->host()->dimension() == xfdtd::GridSpace::Dimension::TWO) {
     updator_te_hd = std::make_unique<BasicUpdatorTEHD>(
@@ -83,12 +103,30 @@ auto SimulationHD::run(Index time_step) -> void {
         _grid_dim, _block_dim, _grid_space_hd, _calculation_param_hd, _emf_hd,
         dynamic_cast<UpdatorAgency*>(updator_te_hd->getUpdatorAgency()));
   } else {
-    updator_3d_hd = std::make_unique<BasicUpdator3DHD>(
-        task, _grid_space_hd, _calculation_param_hd, _emf_hd);
-    updator_3d_hd->copyHostToDevice();
-    domain_hd = std::make_unique<DomainHD>(
-        _grid_dim, _block_dim, _grid_space_hd, _calculation_param_hd, _emf_hd,
-        dynamic_cast<UpdatorAgency*>(updator_3d_hd->getUpdatorAgency()));
+    if (_ade_method_storage_hd != nullptr) {
+      auto drude_storage_hd =
+          std::dynamic_pointer_cast<DrudeADEMethodStorageHD>(
+              _ade_method_storage_hd);
+      if (drude_storage_hd != nullptr) {
+        ade_updator_hd = std::make_unique<DrudeADEUpdatorHD>(
+            task, _grid_space_hd, _calculation_param_hd, _emf_hd,
+            drude_storage_hd);
+        ade_updator_hd->copyHostToDevice();
+        domain_hd = std::make_unique<DomainHD>(
+            _grid_dim, _block_dim, _grid_space_hd, _calculation_param_hd,
+            _emf_hd,
+            dynamic_cast<UpdatorAgency*>(ade_updator_hd->getUpdatorAgency()));
+      } else {
+        throw std::runtime_error("Invalid ADEMethodStorage");
+      }
+    } else {
+      updator_3d_hd = std::make_unique<BasicUpdator3DHD>(
+          task, _grid_space_hd, _calculation_param_hd, _emf_hd);
+      updator_3d_hd->copyHostToDevice();
+      domain_hd = std::make_unique<DomainHD>(
+          _grid_dim, _block_dim, _grid_space_hd, _calculation_param_hd, _emf_hd,
+          dynamic_cast<UpdatorAgency*>(updator_3d_hd->getUpdatorAgency()));
+    }
   }
 
   // TFSF
@@ -234,6 +272,8 @@ auto SimulationHD::init(Index time_step) -> void {
   _calculation_param_hd =
       std::make_shared<CalculationParamHD>(host()->calculationParam().get());
   _emf_hd = std::make_shared<EMFHD>(host()->emf().get());
+
+  _ade_method_storage_hd = makeADEMethodStorageHD();
 }
 
 auto SimulationHD::setGridDim(dim3 grid_dim) -> void { _grid_dim = grid_dim; }
@@ -329,6 +369,25 @@ auto SimulationHD::getNF2FFTD()
   }
 
   return nf2ff_td_hd;
+}
+
+auto SimulationHD::makeADEMethodStorageHD()
+    -> std::unique_ptr<ADEMethodStorageHD> {
+  if (host()->aDEMethodStorage() == nullptr) {
+    return {};
+  }
+
+  // return
+  // std::make_unique<ADEMethodStorageHD>(host()->aDEMethodStorage().get());
+  auto host_storage = host()->aDEMethodStorage();
+  // is drude method
+  auto host_drude_storage =
+      std::dynamic_pointer_cast<xfdtd::DrudeADEMethodStorage>(host_storage);
+  if (host_drude_storage != nullptr) {
+    return std::make_unique<DrudeADEMethodStorageHD>(host_drude_storage.get());
+  }
+
+  throw std::runtime_error("Invalid ADEMethodStorage");
 }
 
 }  // namespace xfdtd::cuda

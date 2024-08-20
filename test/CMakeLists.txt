@@ -12,3 +12,7 @@ add_executable(device_query device_query.cu)
 add_executable(benchmark benchmark.cu)
 target_link_libraries(benchmark PRIVATE xfdtd_cuda)
 target_include_directories(benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_executable(drude_sphere_scatter ./dispersive_sphere_scatter/drude_sphere_scatter.cu)
+target_link_libraries(drude_sphere_scatter PRIVATE xfdtd_cuda)
+target_include_directories(drude_sphere_scatter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ./dispersive_sphere_scatter)

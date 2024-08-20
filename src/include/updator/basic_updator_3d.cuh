@@ -31,8 +31,8 @@ class BasicUpdator3D {
     auto problem_size = range.size();
     auto quotient = problem_size / size;
     auto remainder = problem_size % size;
-    auto start = Index{range.start()};
-    auto end = Index{range.end()};
+    auto start = range.start();
+    auto end = range.end();
 
     if (id < remainder) {
       start += id * (quotient + 1);

@@ -13,6 +13,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <xtensor/xnpy.hpp>
 
 #include "xfdtd_cuda/simulation/simulation_hd.cuh"
 
@@ -91,6 +92,12 @@ auto dielectricSphereScatter(dim3 grid_dim, dim3 block_dim) -> void {
 
   //   nffft_td->setOutputDir((data_path / "td").string());
   //   nffft_td->processFarField();
+
+  auto time{tfsf->waveform()->time()};
+  auto incident_wave_data{tfsf->waveform()->value()};
+  xt::dump_npy((data_path / "time.npy").string(), time);
+  xt::dump_npy((data_path / "incident_wave.npy").string(), incident_wave_data);
+
   std::chrono::high_resolution_clock::time_point end_time =
       std::chrono::high_resolution_clock::now();
 
