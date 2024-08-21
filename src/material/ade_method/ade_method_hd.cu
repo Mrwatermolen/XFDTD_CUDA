@@ -10,6 +10,7 @@ ADEMethodStorageHD::ADEMethodStorageHD(Host* host)
       _coeff_j_e_hd{host->coeffJE()},
       _coeff_j_e_p_hd{host->coeffJEPrev()},
       _coeff_j_sum_j_hd{host->coeffJSumJ()},
+      _coeff_j_sum_j_p_hd{host->coeffJSumJPrev()},
       _coeff_e_j_sum_hd{host->coeffEJSum()},
       _coeff_e_e_p_hd{host->coeffEEPrev()},
       _ex_prev_hd{host->exPrev()},
@@ -20,29 +21,6 @@ ADEMethodStorageHD::ADEMethodStorageHD(Host* host)
       _jz_arr_hd{host->jzArr()},
       _jx_prev_arr_hd{host->jxPrevArr()},
       _jy_prev_arr_hd{host->jyPrevArr()},
-      _jz_prev_arr_hd{host->jzPrevArr()}
-{}
-
-// ADEMethodStorageHD::~ADEMethodStorageHD() { releaseDevice(); }
-
-// auto ADEMethodStorageHD::copyHostToDevice() -> void {
-//   _coeff_j_j_hd.copyHostToDevice();
-//   _coeff_j_j_p_hd.copyHostToDevice();
-//   _coeff_j_e_n_hd.copyHostToDevice();
-//   _coeff_j_e_hd.copyHostToDevice();
-//   _coeff_j_e_p_hd.copyHostToDevice();
-//   _coeff_j_sum_j_hd.copyHostToDevice();
-//   _coeff_e_j_sum_hd.copyHostToDevice();
-//   _coeff_e_e_p_hd.copyHostToDevice();
-//   _ex_prev_hd.copyHostToDevice();
-//   _ey_prev_hd.copyHostToDevice();
-//   _ez_prev_hd.copyHostToDevice();
-//   _jx_arr_hd.copyHostToDevice();
-//   _jy_arr_hd.copyHostToDevice();
-//   _jz_arr_hd.copyHostToDevice();
-//   _jx_arr_prev_hd.copyHostToDevice();
-//   _jy_arr_prev_hd.copyHostToDevice();
-//   _jz_arr_prev_hd.copyHostToDevice();
-// }
+      _jz_prev_arr_hd{host->jzPrevArr()} {}
 
 }  // namespace xfdtd::cuda

@@ -15,6 +15,38 @@ class ADEMethodStorage {
   friend class ADEMethodStorageHd;
 
  public:
+  // ADEMethodStorage() = default;
+
+  ADEMethodStorage(Index num_pole, Array4D<Real>* coeff_j_j,
+                   Array4D<Real>* coeff_j_j_p, Array4D<Real>* coeff_j_e_n,
+                   Array4D<Real>* coeff_j_e, Array4D<Real>* coeff_j_e_p,
+                   Array4D<Real>* coeff_j_sum_j, Array4D<Real>* coeff_j_sum_j_p,
+                   Array3D<Real>* coeff_e_j_sum, Array3D<Real>* coeff_e_e_p,
+                   Array3D<Real>* ex_prev, Array3D<Real>* ey_prev,
+                   Array3D<Real>* ez_prev, Array4D<Real>* jx_arr,
+                   Array4D<Real>* jy_arr, Array4D<Real>* jz_arr,
+                   Array4D<Real>* jx_prev_arr, Array4D<Real>* jy_prev_arr,
+                   Array4D<Real>* jz_prev_arr)
+      : _num_pole{num_pole},
+        _coeff_j_j{coeff_j_j},
+        _coeff_j_j_p{coeff_j_j_p},
+        _coeff_j_e_n{coeff_j_e_n},
+        _coeff_j_e{coeff_j_e},
+        _coeff_j_e_p{coeff_j_e_p},
+        _coeff_j_sum_j{coeff_j_sum_j},
+        _coeff_j_sum_j_p{coeff_j_sum_j_p},
+        _coeff_e_j_sum{coeff_e_j_sum},
+        _coeff_e_e_p{coeff_e_e_p},
+        _ex_prev{ex_prev},
+        _ey_prev{ey_prev},
+        _ez_prev{ez_prev},
+        _jx_arr{jx_arr},
+        _jy_arr{jy_arr},
+        _jz_arr{jz_arr},
+        _jx_prev_arr{jx_prev_arr},
+        _jy_prev_arr{jy_prev_arr},
+        _jz_prev_arr{jz_prev_arr} {}
+
   XFDTD_CUDA_DEVICE auto numPole() const { return _num_pole; }
 
   XFDTD_CUDA_DEVICE auto& coeffJJ() { return *_coeff_j_j; }

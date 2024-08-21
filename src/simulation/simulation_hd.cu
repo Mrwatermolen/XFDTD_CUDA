@@ -4,6 +4,7 @@
 #include <xfdtd/electromagnetic_field/electromagnetic_field.h>
 #include <xfdtd/grid_space/grid_space.h>
 #include <xfdtd/material/ade_method/drude_ade_method.h>
+#include <xfdtd/material/ade_method/m_lor_ade_method.h>
 #include <xfdtd/monitor/field_monitor.h>
 #include <xfdtd/nffft/nffft_frequency_domain.h>
 #include <xfdtd/nffft/nffft_time_domain.h>
@@ -23,12 +24,14 @@
 #include "material/ade_method/ade_method_hd.cuh"
 #include "material/ade_method/debye_ade_method_hd.cuh"
 #include "material/ade_method/drude_ade_method_hd.cuh"
+#include "material/ade_method/m_lor_ade_method_hd.cuh"
 #include "monitor/movie_monitor_hd.cuh"
 #include "nf2ff/frequency_domain/nf2ff_frequency_domain_hd.cuh"
 #include "nf2ff/time_domain/nf2ff_time_domain_hd.cuh"
 #include "updator/ade_updator/ade_updator_hd.cuh"
 #include "updator/ade_updator/debye_ade_updator_hd.cuh"
 #include "updator/ade_updator/drude_ade_updator_hd.cuh"
+#include "updator/ade_updator/m_lor_ade_updator_hd.cuh"
 #include "updator/basic_updator/basic_updator_3d_hd.cuh"
 #include "updator/basic_updator/basic_updator_te_hd.cuh"
 #include "waveform_source/tfsf/tfsf_corrector_hd.cuh"
@@ -364,6 +367,16 @@ auto SimulationHD::makeADEMethodStorageHD()
     }
   }
 
+  {
+    auto m_lor_storage =
+        std::dynamic_pointer_cast<xfdtd::MLorentzADEMethodStorage>(
+            host_storage);
+
+    if (m_lor_storage != nullptr) {
+      return std::make_unique<MLorentzADEMethodStorageHD>(m_lor_storage.get());
+    }
+  }
+
   throw std::runtime_error(
       "XFDTD CUDA SimulationHD::makeADEMethodStorageHD: "
       "Invalid ADEMethodStorage");
@@ -449,6 +462,17 @@ auto SimulationHD::makeADEUpdatorHD(IndexTask task)
       return std::make_unique<DebyeADEUpdatorHD>(task, _grid_space_hd,
                                                  _calculation_param_hd, _emf_hd,
                                                  debye_storage_hd);
+    }
+  }
+
+  {
+    auto m_lor_storage_hd =
+        std::dynamic_pointer_cast<MLorentzADEMethodStorageHD>(
+            _ade_method_storage_hd);
+    if (m_lor_storage_hd != nullptr) {
+      return std::make_unique<MLorentzADEUpdatorHD>(task, _grid_space_hd,
+                                                    _calculation_param_hd,
+                                                    _emf_hd, m_lor_storage_hd);
     }
   }
 

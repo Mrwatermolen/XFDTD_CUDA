@@ -21,7 +21,7 @@ class ADEMethodStorageHD
 
  protected:
   TensorHD<Real, 4> _coeff_j_j_hd, _coeff_j_j_p_hd, _coeff_j_e_n_hd,
-      _coeff_j_e_hd, _coeff_j_e_p_hd, _coeff_j_sum_j_hd;
+      _coeff_j_e_hd, _coeff_j_e_p_hd, _coeff_j_sum_j_hd, _coeff_j_sum_j_p_hd;
   TensorHD<Real, 3> _coeff_e_j_sum_hd, _coeff_e_e_p_hd;
   TensorHD<Real, 3> _ex_prev_hd, _ey_prev_hd, _ez_prev_hd;
   TensorHD<Real, 4> _jx_arr_hd, _jy_arr_hd, _jz_arr_hd, _jx_prev_arr_hd,

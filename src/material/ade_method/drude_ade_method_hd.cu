@@ -18,17 +18,16 @@ auto DrudeADEMethodStorageHD::copyHostToDevice() -> void {
   _jy_arr_hd.copyHostToDevice();
   _jz_arr_hd.copyHostToDevice();
 
-  auto device = Device{};
-  device._num_pole = host->numPole();
-  device._coeff_j_j = _coeff_j_j_hd.device();
-  device._coeff_j_e = _coeff_j_e_hd.device();
-  device._coeff_j_sum_j = _coeff_j_sum_j_hd.device();
-  device._coeff_e_j_sum = _coeff_e_j_sum_hd.device();
-  device._jx_arr = _jx_arr_hd.device();
-  device._jy_arr = _jy_arr_hd.device();
-  device._jz_arr = _jz_arr_hd.device();
+  auto d = Device{host->numPole(),
+                  _coeff_j_j_hd.device(),
+                  _coeff_j_e_hd.device(),
+                  _coeff_j_sum_j_hd.device(),
+                  _coeff_e_j_sum_hd.device(),
+                  _jx_arr_hd.device(),
+                  _jy_arr_hd.device(),
+                  _jz_arr_hd.device()};
 
-  this->copyToDevice(&device);
+  this->copyToDevice(&d);
 }
 
 auto DrudeADEMethodStorageHD::copyDeviceToHost() -> void {

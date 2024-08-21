@@ -8,7 +8,11 @@
 namespace xfdtd::cuda {
 
 class DrudeADEMethodStorage : public ADEMethodStorage {
-  friend class DrudeADEMethodStorageHD;
+ public:
+  DrudeADEMethodStorage(Index num_pole, Array4D<Real>* coeff_j_j,
+                        Array4D<Real>* coeff_j_e, Array4D<Real>* coeff_j_sum_j,
+                        Array3D<Real>* coeff_e_j_sum, Array4D<Real>* jx_arr,
+                        Array4D<Real>* jy_arr, Array4D<Real>* jz_arr);
 };
 
 }  // namespace xfdtd::cuda
