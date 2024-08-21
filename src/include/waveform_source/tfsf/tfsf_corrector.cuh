@@ -25,6 +25,21 @@ class TFSFCorrector {
       return;
     }
 
+    // static bool first = true;
+    // if (first) {
+    //   first = false;
+    //   printf(
+    //       "correctTFSF: direction: %d, attribute: %d, field_xyz: %d, Block: "
+    //       "(%d, %d, %d), Thread: (%d, %d, %d), Task: (%lu, %lu, %lu), (%lu, "
+    //       "%lu, %lu)\n",
+    //       static_cast<int>(direction), static_cast<int>(attribute),
+    //       static_cast<int>(field_xyz), blockIdx.x, blockIdx.y, blockIdx.z,
+    //       threadIdx.x, threadIdx.y, threadIdx.z, task.xRange().start(),
+    //       task.yRange().start(), task.zRange().start(), task.xRange().end(),
+    //       task.yRange().end(), task.zRange().end());
+    //   __syncthreads();
+    // }
+
     constexpr auto xyz = Axis::fromDirectionToXYZ<direction>();
     constexpr auto dual_xyz_a = Axis::tangentialAAxis<xyz>();
     constexpr auto dual_xyz_b = Axis::tangentialBAxis<xyz>();
@@ -243,13 +258,19 @@ class TFSFCorrector {
     } else if constexpr (direction == xfdtd::Axis::Direction::ZN) {
       return makeTask(total_task.xRange(), total_task.yRange(),
                       makeRange(total_task.zRange().start(),
-                                total_task.xRange().start() + 1));
+                                total_task.zRange().start() + 1));
     } else if constexpr (direction == xfdtd::Axis::Direction::ZP) {
       return makeTask(
           total_task.xRange(), total_task.yRange(),
-          makeRange(total_task.zRange().end(), total_task.xRange().end() + 1));
+          makeRange(total_task.zRange().end(), total_task.zRange().end() + 1));
     } else {
-      // TODO
+      static_assert(direction == xfdtd::Axis::Direction::XN ||
+                        direction == xfdtd::Axis::Direction::XP ||
+                        direction == xfdtd::Axis::Direction::YN ||
+                        direction == xfdtd::Axis::Direction::YP ||
+                        direction == xfdtd::Axis::Direction::ZN ||
+                        direction == xfdtd::Axis::Direction::ZP,
+                    "Direction error");
     }
   }
 

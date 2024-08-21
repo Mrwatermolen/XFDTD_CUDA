@@ -62,6 +62,18 @@ auto SimulationHD::copyDeviceToHost() -> void {
     throw std::runtime_error("Host is nullptr");
   }
 
+  if (_grid_space_hd == nullptr) {
+    throw std::runtime_error("GridSpaceHD is nullptr");
+  }
+
+  if (_calculation_param_hd == nullptr) {
+    throw std::runtime_error("CalculationParamHD is nullptr");
+  }
+
+  if (_emf_hd == nullptr) {
+    throw std::runtime_error("EMFHD is nullptr");
+  }
+
   _grid_space_hd->copyDeviceToHost();
   _calculation_param_hd->copyDeviceToHost();
   _emf_hd->copyDeviceToHost();
@@ -72,9 +84,17 @@ auto SimulationHD::copyDeviceToHost() -> void {
 }
 
 auto SimulationHD::releaseDevice() -> void {
-  _grid_space_hd->releaseDevice();
-  _calculation_param_hd->releaseDevice();
-  _emf_hd->releaseDevice();
+  if (_grid_space_hd != nullptr) {
+    _grid_space_hd->releaseDevice();
+  }
+
+  if (_calculation_param_hd != nullptr) {
+    _calculation_param_hd->releaseDevice();
+  }
+
+  if (_emf_hd != nullptr) {
+    _emf_hd->releaseDevice();
+  }
 
   if (_ade_method_storage_hd != nullptr) {
     _ade_method_storage_hd->releaseDevice();
