@@ -32,6 +32,11 @@ target_include_directories(
   xfdtd_cuda PRIVATE $<BUILD_INTERFACE:${XFDTD_CUDA_PRIVATE_INCLUDE_DIR}>
                      $<INSTALL_INTERFACE:include>)
 
+if (XFDTD_CORE_WITH_MPI)
+  # We need to link MPI_CXX, but it is not supported by XFDTD_CUDA
+  target_link_libraries(xfdtd_cuda PUBLIC MPI::MPI_CXX)
+endif()
+
 install(
   TARGETS xfdtd_cuda ${XFDTD_CUDA_LIBS}
   EXPORT xfdtd_cuda-targets
