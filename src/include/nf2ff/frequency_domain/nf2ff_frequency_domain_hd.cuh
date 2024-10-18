@@ -20,7 +20,7 @@ class NFFFTFrequencyDomain;
 
 namespace xfdtd::cuda {
 
-struct SurfaceCurrentSet;
+struct SurfaceCurrentSetFD;
 class NF2FFFrequencyDomainAgency;
 
 class NF2FFFrequencyDomainHD
@@ -34,6 +34,10 @@ class NF2FFFrequencyDomainHD
       std::shared_ptr<const CalculationParamHD> calculation_param_hd,
       std::shared_ptr<const EMFHD> emf_hd);
 
+  NF2FFFrequencyDomainHD(const NF2FFFrequencyDomainHD&) = delete;
+
+  NF2FFFrequencyDomainHD& operator=(const NFFFTFrequencyDomain&) = delete;
+
   ~NF2FFFrequencyDomainHD() override;
 
   auto copyHostToDevice() -> void override;
@@ -45,12 +49,12 @@ class NF2FFFrequencyDomainHD
   auto agencies() -> std::vector<NF2FFFrequencyDomainAgency*>&;
 
  private:
-  std::shared_ptr<const GridSpaceHD> _grid_space_hd{};
-  std::shared_ptr<const CalculationParamHD> _calculation_param_hd{};
-  std::shared_ptr<const EMFHD> _emf_hd{};
+  std::shared_ptr<const GridSpaceHD> _grid_space_hd;
+  std::shared_ptr<const CalculationParamHD> _calculation_param_hd;
+  std::shared_ptr<const EMFHD> _emf_hd;
 
-  std::vector<std::unique_ptr<SurfaceCurrentSet>> _surface_current_set{};
-  std::vector<NF2FFFrequencyDomainAgency*> _agencies{};
+  std::vector<std::unique_ptr<SurfaceCurrentSetFD>> _surface_current_set;
+  std::vector<NF2FFFrequencyDomainAgency*> _agencies;
 };
 
 }  // namespace xfdtd::cuda

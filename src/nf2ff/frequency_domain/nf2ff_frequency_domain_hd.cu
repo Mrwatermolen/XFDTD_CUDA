@@ -27,14 +27,14 @@ static auto indexTaskToIndexTask(xfdtd::IndexTask task) -> IndexTask {
 }
 
 template <xfdtd::Axis::Direction D>
-struct SurfaceCurrent : HostDeviceCarrier<void, NF2FFFrequencyDomainData<D>> {
+struct SurfaceCurrentFD : HostDeviceCarrier<void, NF2FFFrequencyDomainData<D>> {
   using Host = void;
   using Device = NF2FFFrequencyDomainData<D>;
   inline static constexpr auto xyz = xfdtd::Axis::fromDirectionToXYZ<D>();
   inline static constexpr auto xyz_a = xfdtd::Axis::tangentialAAxis<xyz>();
   inline static constexpr auto xyz_b = xfdtd::Axis::tangentialBAxis<xyz>();
 
-  SurfaceCurrent(NFFFTFrequencyDomain* nf2ff, Index i,
+  SurfaceCurrentFD(NFFFTFrequencyDomain* nf2ff, Index i,
                  const GridSpace* grid_space_device,
                  const CalculationParam* calculation_param_device,
                  const EMF* emf_device, IndexTask task)
@@ -56,7 +56,7 @@ struct SurfaceCurrent : HostDeviceCarrier<void, NF2FFFrequencyDomainData<D>> {
             nf2ff->equivalentSurfaceCurrent<D, xfdtd::EMF::Attribute::E, xyz_b>(
                 i)} {}
 
-  ~SurfaceCurrent() override { releaseDevice(); }
+  ~SurfaceCurrentFD() override { releaseDevice(); }
 
   auto copyHostToDevice() -> void override {
     _ja_hd.copyHostToDevice();
@@ -81,11 +81,11 @@ struct SurfaceCurrent : HostDeviceCarrier<void, NF2FFFrequencyDomainData<D>> {
         reinterpret_cast<Tensor<thrust::complex<Real>, 3>*>(_mb_hd.device());
     if (_transform_e_device == nullptr) {
       throw std::runtime_error(
-          "SurfaceCurrent::_transform_e_device is nullptr");
+          "SurfaceCurrentFD::_transform_e_device is nullptr");
     }
     if (_transform_h_device == nullptr) {
       throw std::runtime_error(
-          "SurfaceCurrent::_transform_h_device is nullptr");
+          "SurfaceCurrentFD::_transform_h_device is nullptr");
     }
 
     d._transform_e = reinterpret_cast<Tensor<thrust::complex<Real>, 1>*>(
@@ -133,8 +133,8 @@ struct SurfaceCurrent : HostDeviceCarrier<void, NF2FFFrequencyDomainData<D>> {
 //   }
 // }
 
-struct SurfaceCurrentSet : public HostDeviceCarrier<void, void> {
-  SurfaceCurrentSet(NFFFTFrequencyDomain* nf2ff, Index i,
+struct SurfaceCurrentSetFD : public HostDeviceCarrier<void, void> {
+  SurfaceCurrentSetFD(NFFFTFrequencyDomain* nf2ff, Index i,
                     const GridSpace* grid_space_device,
                     const CalculationParam* calculation_param_device,
                     const EMF* emf_device)
@@ -178,7 +178,7 @@ struct SurfaceCurrentSet : public HostDeviceCarrier<void, void> {
         _transform_e_hd{nf2ff->transformE(i)},
         _transform_h_hd{nf2ff->transformH(i)} {}
 
-  ~SurfaceCurrentSet() override { releaseDevice(); }
+  ~SurfaceCurrentSetFD() override { releaseDevice(); }
 
   auto copyHostToDevice() -> void override {
     _transform_e_hd.copyHostToDevice();
@@ -236,14 +236,14 @@ struct SurfaceCurrentSet : public HostDeviceCarrier<void, void> {
     return _agency.get();
   }
 
-  SurfaceCurrent<xfdtd::Axis::Direction::XN> _xn;
-  SurfaceCurrent<xfdtd::Axis::Direction::XP> _xp;
-  SurfaceCurrent<xfdtd::Axis::Direction::YN> _yn;
-  SurfaceCurrent<xfdtd::Axis::Direction::YP> _yp;
-  SurfaceCurrent<xfdtd::Axis::Direction::ZN> _zn;
-  SurfaceCurrent<xfdtd::Axis::Direction::ZP> _zp;
+  SurfaceCurrentFD<xfdtd::Axis::Direction::XN> _xn;
+  SurfaceCurrentFD<xfdtd::Axis::Direction::XP> _xp;
+  SurfaceCurrentFD<xfdtd::Axis::Direction::YN> _yn;
+  SurfaceCurrentFD<xfdtd::Axis::Direction::YP> _yp;
+  SurfaceCurrentFD<xfdtd::Axis::Direction::ZN> _zn;
+  SurfaceCurrentFD<xfdtd::Axis::Direction::ZP> _zp;
   TensorHD<std::complex<Real>, 1> _transform_e_hd, _transform_h_hd;
-  std::unique_ptr<NF2FFFrequencyDomainAgency> _agency{};
+  std::unique_ptr<NF2FFFrequencyDomainAgency> _agency;
 };
 
 NF2FFFrequencyDomainHD::NF2FFFrequencyDomainHD(
@@ -255,13 +255,19 @@ NF2FFFrequencyDomainHD::NF2FFFrequencyDomainHD(
       _calculation_param_hd{calculation_param_hd},
       _emf_hd{emf_hd} {
   for (auto i{0}; i < host->freqCount(); ++i) {
-    _surface_current_set.emplace_back(std::make_unique<SurfaceCurrentSet>(
+    _surface_current_set.emplace_back(std::make_unique<SurfaceCurrentSetFD>(
         host, i, grid_space_hd->device(), calculation_param_hd->device(),
         emf_hd->device()));
   }
 }
 
-NF2FFFrequencyDomainHD::~NF2FFFrequencyDomainHD() { releaseDevice(); }
+NF2FFFrequencyDomainHD::~NF2FFFrequencyDomainHD() { 
+  // for(auto&& v : _surface_current_set) {
+  //   delete v;
+  //   v = nullptr;
+  // }
+  // _surface_current_set.resize(0);
+  releaseDevice(); }
 
 auto NF2FFFrequencyDomainHD::copyHostToDevice() -> void {
   for (auto&& s : _surface_current_set) {

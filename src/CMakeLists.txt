@@ -1,4 +1,6 @@
 set(XFDTD_CUDA_PRIVATE_INLCUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
+message(STATUS "${XFDTD_CUDA_PRIVATE_INLCUDES}")
+include_directories(${XFDTD_CUDA_PRIVATE_INLCUDES})
 
 add_subdirectory(boundary)
 add_subdirectory(grid_space)
@@ -29,13 +31,7 @@ target_include_directories(
                     $<INSTALL_INTERFACE:include>)
 
 target_include_directories(
-  xfdtd_cuda PRIVATE $<BUILD_INTERFACE:${XFDTD_CUDA_PRIVATE_INCLUDE_DIR}>
-                     $<INSTALL_INTERFACE:include>)
-
-if (XFDTD_CORE_WITH_MPI)
-  # We need to link MPI_CXX, but it is not supported by XFDTD_CUDA
-  target_link_libraries(xfdtd_cuda PUBLIC MPI::MPI_CXX)
-endif()
+  xfdtd_cuda PRIVATE ${XFDTD_CUDA_PRIVATE_INCLUDE_DIR})
 
 install(
   TARGETS xfdtd_cuda ${XFDTD_CUDA_LIBS}
@@ -46,7 +42,5 @@ install(
   INCLUDES
   DESTINATION ${XFDTD_CUDA_INSTALL_PREFIX}/include)
 
-  message(STATUS "XFDTD_CUDA_INSTALL_PREFIX: ${XFDTD_CUDA_INSTALL_PREFIX}")
-  message(STATUS "XFDTD_CUDA_PUBLIC_INCLUDES: ${XFDTD_CUDA_PUBLIC_INCLUDES}")
 install(DIRECTORY ${XFDTD_CUDA_PUBLIC_INCLUDES}/xfdtd_cuda
         DESTINATION ${XFDTD_CUDA_INSTALL_PREFIX}/include)
