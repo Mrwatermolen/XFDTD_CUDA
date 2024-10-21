@@ -146,7 +146,7 @@ inline void runSimulation(std::shared_ptr<xfdtd::Material> sphere_material,
 
 inline void testCase(
     const std::shared_ptr<xfdtd::LinearDispersiveMaterial>& material, int id,
-    dim3 grid_dim, dim3 block_dim, double concerned_freq = 1e9) {
+    dim3 grid_dim, dim3 block_dim, xfdtd::Real concerned_freq = 1e9) {
   std::filesystem::path data_dir =
       std::filesystem::path("./tmp/data/dispersive_material_scatter");
 
