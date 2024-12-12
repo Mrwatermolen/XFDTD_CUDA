@@ -30,10 +30,15 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(XFDTD_CUDA_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  add_compile_definitions(XFDTD_CUDA_CXX_MSVC)
+endif()
+
 find_package(xfdtd_core REQUIRED)
 
 set(XFDTD_CUDA_PUBLIC_INCLUDES ${PROJECT_SOURCE_DIR}/include)
 include_directories(${XFDTD_CUDA_PUBLIC_INCLUDES})
+link_libraries(xfdtd::xfdtd_core)
 
 add_subdirectory(src)
 add_subdirectory(test)
