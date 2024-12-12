@@ -8,3 +8,7 @@ add_executable(dielectric_sphere_scatter dielectric_sphere_scatter.cu)
 target_link_libraries(dielectric_sphere_scatter PRIVATE xfdtd_cuda)
 
 add_executable(device_query device_query.cu)
+
+add_executable(benchmark benchmark.cu)
+target_link_libraries(benchmark PRIVATE xfdtd_cuda)
+target_include_directories(benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
