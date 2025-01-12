@@ -8,6 +8,7 @@
 
 #include <xfdtd_cuda/common.cuh>
 #include <xfdtd_cuda/tensor.cuh>
+#include <xfdtd_cuda/tensor_texture_ref.cuh>
 
 namespace xfdtd::cuda {
 
@@ -18,19 +19,61 @@ class FDTDCoefficient {
  public:
   FDTDCoefficient() = default;
 
-  FDTDCoefficient(Array3D<Real> *cexe, Array3D<Real> *cexhy,
-                  Array3D<Real> *cexhz, Array3D<Real> *ceye,
-                  Array3D<Real> *ceyhz, Array3D<Real> *ceyhx,
-                  Array3D<Real> *ceze, Array3D<Real> *cezhx,
-                  Array3D<Real> *cezhy, Array3D<Real> *chxh,
-                  Array3D<Real> *chxey, Array3D<Real> *chxez,
-                  Array3D<Real> *chyh, Array3D<Real> *chyez,
-                  Array3D<Real> *chyex, Array3D<Real> *chzh,
-                  Array3D<Real> *chzex, Array3D<Real> *chzey);
+  FDTDCoefficient(
+      TensorTextureRef<Real, 3> cexe, TensorTextureRef<Real, 3> cexhy,
+      TensorTextureRef<Real, 3> cexhz, TensorTextureRef<Real, 3> ceye,
+      TensorTextureRef<Real, 3> ceyhz, TensorTextureRef<Real, 3> ceyhx,
+      TensorTextureRef<Real, 3> ceze, TensorTextureRef<Real, 3> cezhx,
+      TensorTextureRef<Real, 3> cezhy, TensorTextureRef<Real, 3> chxh,
+      TensorTextureRef<Real, 3> chxey, TensorTextureRef<Real, 3> chxez,
+      TensorTextureRef<Real, 3> chyh, TensorTextureRef<Real, 3> chyez,
+      TensorTextureRef<Real, 3> chyex, TensorTextureRef<Real, 3> chzh,
+      TensorTextureRef<Real, 3> chzex, TensorTextureRef<Real, 3> chzey);
+
+ public:
+  XFDTD_CUDA_DUAL auto &cexe() const { return _cexe; }
+  XFDTD_CUDA_DUAL auto &cexhy() const { return _cexhy; }
+  XFDTD_CUDA_DUAL auto &cexhz() const { return _cexhz; }
+  XFDTD_CUDA_DUAL auto &ceye() const { return _ceye; }
+  XFDTD_CUDA_DUAL auto &ceyhz() const { return _ceyhz; }
+  XFDTD_CUDA_DUAL auto &ceyhx() const { return _ceyhx; }
+  XFDTD_CUDA_DUAL auto &ceze() const { return _ceze; }
+  XFDTD_CUDA_DUAL auto &cezhx() const { return _cezhx; }
+  XFDTD_CUDA_DUAL auto &cezhy() const { return _cezhy; }
+
+  XFDTD_CUDA_DUAL auto &chxh() const { return _chxh; }
+  XFDTD_CUDA_DUAL auto &chxey() const { return _chxey; }
+  XFDTD_CUDA_DUAL auto &chxez() const { return _chxez; }
+  XFDTD_CUDA_DUAL auto &chyh() const { return _chyh; }
+  XFDTD_CUDA_DUAL auto &chyez() const { return _chyez; }
+  XFDTD_CUDA_DUAL auto &chyex() const { return _chyex; }
+  XFDTD_CUDA_DUAL auto &chzh() const { return _chzh; }
+  XFDTD_CUDA_DUAL auto &chzex() const { return _chzex; }
+  XFDTD_CUDA_DUAL auto &chzey() const { return _chzey; }
+
+  XFDTD_CUDA_DUAL auto &cexe() { return _cexe; }
+  XFDTD_CUDA_DUAL auto &cexhy() { return _cexhy; }
+  XFDTD_CUDA_DUAL auto &cexhz() { return _cexhz; }
+  XFDTD_CUDA_DUAL auto &ceye() { return _ceye; }
+  XFDTD_CUDA_DUAL auto &ceyhz() { return _ceyhz; }
+  XFDTD_CUDA_DUAL auto &ceyhx() { return _ceyhx; }
+  XFDTD_CUDA_DUAL auto &ceze() { return _ceze; }
+  XFDTD_CUDA_DUAL auto &cezhx() { return _cezhx; }
+  XFDTD_CUDA_DUAL auto &cezhy() { return _cezhy; }
+
+  XFDTD_CUDA_DUAL auto &chxh() { return _chxh; }
+  XFDTD_CUDA_DUAL auto &chxey() { return _chxey; }
+  XFDTD_CUDA_DUAL auto &chxez() { return _chxez; }
+  XFDTD_CUDA_DUAL auto &chyh() { return _chyh; }
+  XFDTD_CUDA_DUAL auto &chyez() { return _chyez; }
+  XFDTD_CUDA_DUAL auto &chyex() { return _chyex; }
+  XFDTD_CUDA_DUAL auto &chzh() { return _chzh; }
+  XFDTD_CUDA_DUAL auto &chzex() { return _chzex; }
+  XFDTD_CUDA_DUAL auto &chzey() { return _chzey; }
 
  public:
   template <xfdtd::EMF::Attribute c, Axis::XYZ xyz>
-  XFDTD_CUDA_DUAL auto coeff() const -> const Array3D<Real> & {
+  XFDTD_CUDA_DUAL auto &coeff() const {
     constexpr auto f = transform::attributeXYZToField<c, xyz>();
     if constexpr (f == xfdtd::EMF::Field::EX) {
       return cexe();
@@ -55,7 +98,7 @@ class FDTDCoefficient {
 
   template <xfdtd::EMF::Attribute a, Axis::XYZ xyz_a, xfdtd::EMF::Attribute b,
             Axis::XYZ xyz_b>
-  XFDTD_CUDA_DUAL auto coeff() const -> const Array3D<Real> & {
+  XFDTD_CUDA_DUAL auto &coeff() const {
     constexpr auto f = transform::attributeXYZToField<a, xyz_a>();
     constexpr auto g = transform::attributeXYZToField<b, xyz_b>();
     if constexpr (f == xfdtd::EMF::Field::EX && g == xfdtd::EMF::Field::HY) {
@@ -102,91 +145,26 @@ class FDTDCoefficient {
     }
   };
 
- public:
-  XFDTD_CUDA_DUAL auto cexe() const -> const Array3D<Real> & { return *_cexe; }
-  XFDTD_CUDA_DUAL auto cexhy() const -> const Array3D<Real> & {
-    return *_cexhy;
-  }
-  XFDTD_CUDA_DUAL auto cexhz() const -> const Array3D<Real> & {
-    return *_cexhz;
-  }
-  XFDTD_CUDA_DUAL auto ceye() const -> const Array3D<Real> & { return *_ceye; }
-  XFDTD_CUDA_DUAL auto ceyhz() const -> const Array3D<Real> & {
-    return *_ceyhz;
-  }
-  XFDTD_CUDA_DUAL auto ceyhx() const -> const Array3D<Real> & {
-    return *_ceyhx;
-  }
-  XFDTD_CUDA_DUAL auto ceze() const -> const Array3D<Real> & { return *_ceze; }
-  XFDTD_CUDA_DUAL auto cezhx() const -> const Array3D<Real> & {
-    return *_cezhx;
-  }
-  XFDTD_CUDA_DUAL auto cezhy() const -> const Array3D<Real> & {
-    return *_cezhy;
-  }
-
-  XFDTD_CUDA_DUAL auto chxh() const -> const Array3D<Real> & { return *_chxh; }
-  XFDTD_CUDA_DUAL auto chxey() const -> const Array3D<Real> & {
-    return *_chxey;
-  }
-  XFDTD_CUDA_DUAL auto chxez() const -> const Array3D<Real> & {
-    return *_chxez;
-  }
-  XFDTD_CUDA_DUAL auto chyh() const -> const Array3D<Real> & { return *_chyh; }
-  XFDTD_CUDA_DUAL auto chyez() const -> const Array3D<Real> & {
-    return *_chyez;
-  }
-  XFDTD_CUDA_DUAL auto chyex() const -> const Array3D<Real> & {
-    return *_chyex;
-  }
-  XFDTD_CUDA_DUAL auto chzh() const -> const Array3D<Real> & { return *_chzh; }
-  XFDTD_CUDA_DUAL auto chzex() const -> const Array3D<Real> & {
-    return *_chzex;
-  }
-  XFDTD_CUDA_DUAL auto chzey() const -> const Array3D<Real> & {
-    return *_chzey;
-  }
-
-  XFDTD_CUDA_DUAL auto cexe() -> Array3D<Real> & { return *_cexe; }
-  XFDTD_CUDA_DUAL auto cexhy() -> Array3D<Real> & { return *_cexhy; }
-  XFDTD_CUDA_DUAL auto cexhz() -> Array3D<Real> & { return *_cexhz; }
-  XFDTD_CUDA_DUAL auto ceye() -> Array3D<Real> & { return *_ceye; }
-  XFDTD_CUDA_DUAL auto ceyhz() -> Array3D<Real> & { return *_ceyhz; }
-  XFDTD_CUDA_DUAL auto ceyhx() -> Array3D<Real> & { return *_ceyhx; }
-  XFDTD_CUDA_DUAL auto ceze() -> Array3D<Real> & { return *_ceze; }
-  XFDTD_CUDA_DUAL auto cezhx() -> Array3D<Real> & { return *_cezhx; }
-  XFDTD_CUDA_DUAL auto cezhy() -> Array3D<Real> & { return *_cezhy; }
-
-  XFDTD_CUDA_DUAL auto chxh() -> Array3D<Real> & { return *_chxh; }
-  XFDTD_CUDA_DUAL auto chxey() -> Array3D<Real> & { return *_chxey; }
-  XFDTD_CUDA_DUAL auto chxez() -> Array3D<Real> & { return *_chxez; }
-  XFDTD_CUDA_DUAL auto chyh() -> Array3D<Real> & { return *_chyh; }
-  XFDTD_CUDA_DUAL auto chyez() -> Array3D<Real> & { return *_chyez; }
-  XFDTD_CUDA_DUAL auto chyex() -> Array3D<Real> & { return *_chyex; }
-  XFDTD_CUDA_DUAL auto chzh() -> Array3D<Real> & { return *_chzh; }
-  XFDTD_CUDA_DUAL auto chzex() -> Array3D<Real> & { return *_chzex; }
-  XFDTD_CUDA_DUAL auto chzey() -> Array3D<Real> & { return *_chzey; }
-
  private:
-  Array3D<Real> *_cexe{};
-  Array3D<Real> *_cexhy{};
-  Array3D<Real> *_cexhz{};
-  Array3D<Real> *_ceye{};
-  Array3D<Real> *_ceyhz{};
-  Array3D<Real> *_ceyhx{};
-  Array3D<Real> *_ceze{};
-  Array3D<Real> *_cezhx{};
-  Array3D<Real> *_cezhy{};
+  TensorTextureRef<Real, 3> _cexe{};
+  TensorTextureRef<Real, 3> _cexhy{};
+  TensorTextureRef<Real, 3> _cexhz{};
+  TensorTextureRef<Real, 3> _ceye{};
+  TensorTextureRef<Real, 3> _ceyhz{};
+  TensorTextureRef<Real, 3> _ceyhx{};
+  TensorTextureRef<Real, 3> _ceze{};
+  TensorTextureRef<Real, 3> _cezhx{};
+  TensorTextureRef<Real, 3> _cezhy{};
 
-  Array3D<Real> *_chxh{};
-  Array3D<Real> *_chxey{};
-  Array3D<Real> *_chxez{};
-  Array3D<Real> *_chyh{};
-  Array3D<Real> *_chyez{};
-  Array3D<Real> *_chyex{};
-  Array3D<Real> *_chzh{};
-  Array3D<Real> *_chzex{};
-  Array3D<Real> *_chzey{};
+  TensorTextureRef<Real, 3> _chxh{};
+  TensorTextureRef<Real, 3> _chxey{};
+  TensorTextureRef<Real, 3> _chxez{};
+  TensorTextureRef<Real, 3> _chyh{};
+  TensorTextureRef<Real, 3> _chyez{};
+  TensorTextureRef<Real, 3> _chyex{};
+  TensorTextureRef<Real, 3> _chzh{};
+  TensorTextureRef<Real, 3> _chzex{};
+  TensorTextureRef<Real, 3> _chzey{};
 };
 
 XFDTD_CUDA_GLOBAL auto __kernelCheckFDTDUpdateCoefficient(FDTDCoefficient *f)
