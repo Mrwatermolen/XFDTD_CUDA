@@ -9,9 +9,11 @@
 #include <xfdtd/nffft/nffft_frequency_domain.h>
 #include <xfdtd/nffft/nffft_time_domain.h>
 #include <xfdtd/simulation/simulation.h>
+#include <xfdtd/simulation/simulation_flag.h>
 #include <xfdtd/waveform_source/tfsf.h>
 
 #include <memory>
+#include <stdexcept>
 #include <vector>
 #include <xfdtd_cuda/calculation_param/calculation_param_hd.cuh>
 #include <xfdtd_cuda/electromagnetic_field/electromagnetic_field_hd.cuh>
@@ -102,11 +104,12 @@ auto SimulationHD::releaseDevice() -> void {
 }
 
 auto SimulationHD::run(Index time_step) -> void {
+  for (auto&& v : host()->visitors()) {
+    v->initStep(SimulationInitFlag::SimulationStart);
+  }
   std::vector<std::unique_ptr<TFSFCorrectorHD>> tfsf_hd;
-  std::cout << "SimulationHD::run() Start!\n";
   init(time_step);
   copyHostToDevice();
-  std::cout << "SimulationHD::run() - copyHostToDevice \n";
 
   auto task =
       xfdtd::cuda::IndexTask{IndexRange{0, _grid_space_hd->host()->sizeX()},
@@ -216,17 +219,14 @@ auto SimulationHD::run(Index time_step) -> void {
     nf2ff->copyHostToDevice();
     domain_hd->addNF2FFTimeDoaminAgency(nf2ff->agency());
   }
+  for (auto&& v : host()->visitors()) {
+    domain_hd->addSimulationFlagVisitor(v);
+  }
 
-  std::cout << "SimulationHD::run() - domain created \n";
-
-  auto strat_point = std::chrono::high_resolution_clock::now();
   domain_hd->run();
-  auto end_point = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::milli> time_span = end_point - strat_point;
-  std::cout << "Elapsed time: " << time_span.count() << " ms\n";
-  std::cout << "SimulationHD::run() - domain run \n";
+
   copyDeviceToHost();
-  std::cout << "SimulationHD::run() - copyDeviceToHost \n";
+
   for (auto&& m : movie_mointor_ex_hd) {
     m->copyDeviceToHost();
     m->output();
@@ -245,11 +245,13 @@ auto SimulationHD::run(Index time_step) -> void {
   for (auto&& n : nf2ff_td_hd) {
     n->copyDeviceToHost();
   }
-  std::cout << "SimulationHD::run() End!\n";
+  for (auto&& v : host()->visitors()) {
+    v->initStep(SimulationInitFlag::SimulationEnd);
+  }
   {
     auto err = cudaGetLastError();
     if (err != cudaSuccess) {
-      std::cerr << "CUDA Error: " << cudaGetErrorString(err) << "\n";
+      throw std::runtime_error(cudaGetErrorString(err));
     }
   }
 }

@@ -23,8 +23,10 @@ static constexpr auto typeToString(int type) {
     case 1:
       return "Updator and TFSF";
     case 2:
-      return "Updator and TFSF and PML";
+      return "Updator and PML";
     case 3:
+      return "Updator and TFSF and PML";
+    case 4:
       return "Updator and TFSF and PML and NF2FF";
     default:
       return "Unknown";
@@ -100,33 +102,45 @@ int main(int argc, char** argv) {
   constexpr auto data_path_str = "./tmp/dielectric_sphere_scatter"sv;
   const auto data_path = std::filesystem::path{data_path_str};
 
+  auto x_min = -64 * dl;
+  auto x_max = 64 * dl;
+  auto y_min = -64 * dl;
+  auto y_max = 64 * dl;
+  auto z_min = -64 * dl;
+  auto z_max = 64 * dl;
+  auto x_size = x_max - x_min;
+  auto y_size = y_max - y_min;
+  auto z_size = z_max - z_min;
+
   auto domain{std::make_shared<xfdtd::Object>(
       "domain",
-      std::make_unique<xfdtd::Cube>(xfdtd::Vector{-0.175, -0.175, -0.175},
-                                    xfdtd::Vector{0.35, 0.35, 0.35}),
+      std::make_unique<xfdtd::Cube>(
+          xfdtd::Vector{x_min, y_min, z_min},
+          xfdtd::Vector{x_max - x_min, y_max - y_min, z_max - z_min}),
       xfdtd::Material::createAir())};
-  auto dielectric_sphere{std::make_shared<xfdtd::Object>(
-      "dielectric_sphere",
-      std::make_unique<xfdtd::Sphere>(xfdtd::Vector{0, 0, 0}, 0.1),
-      std::make_unique<xfdtd::Material>(
-          "a", xfdtd::ElectroMagneticProperty{3, 2, 0, 0}))};
 
-  auto nx = static_cast<xfdtd::Index>(0.35 / dl);
-  auto ny = static_cast<xfdtd::Index>(0.35 / dl);
-  auto nz = static_cast<xfdtd::Index>(0.35 / dl);
+  // auto dielectric_sphere{std::make_shared<xfdtd::Object>(
+  //     "dielectric_sphere",
+  //     std::make_unique<xfdtd::Sphere>(xfdtd::Vector{0, 0, 0}, 0.1),
+  //     std::make_unique<xfdtd::Material>(
+  //         "a", xfdtd::ElectroMagneticProperty{3, 2, 0, 0}))};
+
+  auto nx = static_cast<xfdtd::Index>(x_size / dl);
+  auto ny = static_cast<xfdtd::Index>(y_size / dl);
+  auto nz = static_cast<xfdtd::Index>(z_size / dl);
 
   auto s{xfdtd::Simulation{dl, dl, dl, 0.9, xfdtd::ThreadConfig{1, 1, 1}}};
   s.addObject(domain);
-  s.addObject(dielectric_sphere);
+  // s.addObject(dielectric_sphere);
 
-  if (3 <= type) {
+  if (4 <= type) {
     constexpr std::size_t nffft_start{static_cast<size_t>(11)};
     auto nffft_fd{std::make_shared<xfdtd::NFFFTFrequencyDomain>(
         nffft_start, nffft_start, nffft_start, xt::xarray<double>{1e9},
         (data_path / "fd").string())};
     s.addNF2FF(nffft_fd);
   }
-  if (2 <= type) {
+  if (2 == type || 4 == type || 3 == type) {
     s.addBoundary(std::make_shared<xfdtd::PML>(8, xfdtd::Axis::Direction::XN));
     s.addBoundary(std::make_shared<xfdtd::PML>(8, xfdtd::Axis::Direction::XP));
     s.addBoundary(std::make_shared<xfdtd::PML>(8, xfdtd::Axis::Direction::YN));
@@ -137,7 +151,7 @@ int main(int argc, char** argv) {
     ny += 16;
     nz += 16;
   }
-  if (1 <= type) {
+  if (1 == type || 4 == type || 3 == type) {
     auto l_min{dl * 20};
     auto tau{l_min / 6e8};
     auto t_0{4.5 * tau};
@@ -164,7 +178,7 @@ int main(int argc, char** argv) {
   s_hd.setBlockDim(block_dim);
   s_hd.run(time_step);
 
-  if (3 <= type) {
+  if (4 <= type) {
     auto nffft_fd = std::dynamic_pointer_cast<xfdtd::NFFFTFrequencyDomain>(
         s.nf2ffs().front());
     if (nffft_fd == nullptr) {
