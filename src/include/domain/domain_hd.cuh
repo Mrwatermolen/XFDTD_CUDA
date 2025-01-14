@@ -2,6 +2,7 @@
 #define __XFDTD_CUDA_DOMAIN_HD_CUH__
 
 #include <xfdtd/electromagnetic_field/electromagnetic_field.h>
+#include <xfdtd/simulation/simulation_flag.h>
 
 #include <memory>
 #include <vector>
@@ -52,9 +53,15 @@ class DomainHD {
 
   auto addMonitor(MonitorAgency* monitor) -> void;
 
-  auto addNF2FFFrequencyDomainAgency(NF2FFFrequencyDomainAgency* agency) -> void;
+  auto addNF2FFFrequencyDomainAgency(NF2FFFrequencyDomainAgency* agency)
+      -> void;
 
   auto addNF2FFTimeDoaminAgency(NF2FFTimeDoaminAgency* agency) -> void;
+
+  auto addSimulationFlagVisitor(std::shared_ptr<SimulationFlagVisitor> visitor)
+      -> void;
+
+  auto sendInitFlag(SimulationInitFlag flag) -> void;
 
  private:
   dim3 _grid_dim;
@@ -67,6 +74,7 @@ class DomainHD {
   std::vector<MonitorAgency*> _monitors;
   std::vector<NF2FFFrequencyDomainAgency*> _nf2ff_agencies;
   std::vector<NF2FFTimeDoaminAgency*> _nf2ff_time_agencies;
+  std::vector<std::shared_ptr<SimulationFlagVisitor>> _simulation_flag_visitors;
 };
 
 }  // namespace xfdtd::cuda

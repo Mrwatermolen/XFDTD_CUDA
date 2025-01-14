@@ -11,10 +11,10 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <xfdtd_cuda/simulation/simulation_hd.cuh>
 #include <xtensor/xnpy.hpp>
 
 #include "argparse/argparse.hpp"
-#include "xfdtd_cuda/simulation/simulation_hd.cuh"
 
 static constexpr auto typeToString(int type) {
   switch (type) {
@@ -32,6 +32,53 @@ static constexpr auto typeToString(int type) {
       return "Unknown";
   }
 }
+
+class Visitor : public xfdtd::SimulationFlagVisitor {
+ public:
+  explicit Visitor(const xfdtd::Simulation& s) : _s{s} {}
+
+  auto initStep(xfdtd::SimulationInitFlag flag) -> void override {
+    if (flag == xfdtd::SimulationInitFlag::UpdateStart) {
+      _start = std::chrono::high_resolution_clock::now();
+    } else if (flag == xfdtd::SimulationInitFlag::UpdateEnd) {
+      auto end = std::chrono::high_resolution_clock::now();
+      auto duration =
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - _start)
+              .count();
+      std::cout << "Elapsed time: " << duration << " ms" << std::endl;
+      const auto s = &_s;
+      if (s == nullptr) {
+        return;
+      }
+
+      std::cout << "(" << s->gridSpace()->globalGridSpace()->sizeX() << ", "
+                << s->gridSpace()->globalGridSpace()->sizeY() << ", "
+                << s->gridSpace()->globalGridSpace()->sizeZ() << ")"
+                << std::endl;
+      auto number_grid = s->gridSpace()->globalGridSpace()->sizeX() *
+                         s->gridSpace()->globalGridSpace()->sizeY() *
+                         s->gridSpace()->globalGridSpace()->sizeZ();
+
+      std::cout << "The number of grid: " << number_grid << '\n';
+      auto e = end - _start;
+      auto nano =
+          std::chrono::duration_cast<std::chrono::microseconds>(e).count();
+      auto time_steps = s->calculationParam()->timeParam()->endTimeStep() -
+                        s->calculationParam()->timeParam()->startTimeStep();
+      auto per_second_grid_m =
+          time_steps * number_grid / (static_cast<double>(nano) / 1e6) / 1e6;
+
+      std::cout << "Grid per second: " << per_second_grid_m << " MCell/s\n";
+    }
+  }
+
+  auto iteratorStep(xfdtd::SimulationIteratorFlag flag, xfdtd::Index cur,
+                    xfdtd::Index start, xfdtd::Index end) -> void override {}
+
+ private:
+  std::chrono::high_resolution_clock::time_point _start;
+  const xfdtd::Simulation& _s;
+};
 
 int main(int argc, char** argv) {
   // Parse command line arguments
@@ -99,7 +146,7 @@ int main(int argc, char** argv) {
   const auto time_step = benchmark_program.get<int>(time_step_arg);
   const auto type = benchmark_program.get<int>(type_arg);
 
-  constexpr auto data_path_str = "./tmp/dielectric_sphere_scatter"sv;
+  constexpr auto data_path_str = "./tmp/dielectric_sphere_scatter_cuda"sv;
   const auto data_path = std::filesystem::path{data_path_str};
 
   auto x_min = -64 * dl;
@@ -119,19 +166,13 @@ int main(int argc, char** argv) {
           xfdtd::Vector{x_max - x_min, y_max - y_min, z_max - z_min}),
       xfdtd::Material::createAir())};
 
-  // auto dielectric_sphere{std::make_shared<xfdtd::Object>(
-  //     "dielectric_sphere",
-  //     std::make_unique<xfdtd::Sphere>(xfdtd::Vector{0, 0, 0}, 0.1),
-  //     std::make_unique<xfdtd::Material>(
-  //         "a", xfdtd::ElectroMagneticProperty{3, 2, 0, 0}))};
-
   auto nx = static_cast<xfdtd::Index>(x_size / dl);
   auto ny = static_cast<xfdtd::Index>(y_size / dl);
   auto nz = static_cast<xfdtd::Index>(z_size / dl);
 
   auto s{xfdtd::Simulation{dl, dl, dl, 0.9, xfdtd::ThreadConfig{1, 1, 1}}};
   s.addObject(domain);
-  // s.addObject(dielectric_sphere);
+  s.addVisitor(std::make_shared<Visitor>(s));
 
   if (4 <= type) {
     constexpr std::size_t nffft_start{static_cast<size_t>(11)};
@@ -165,13 +206,7 @@ int main(int argc, char** argv) {
   std::cout << "Grid size: (" << grid_dim.x << ", " << grid_dim.y << ", "
             << grid_dim.z << "), Block size: (" << block_dim.x << ", "
             << block_dim.y << ", " << block_dim.z << ")\n";
-  std::cout << "Delta l: " << dl << "\n";
-  std::cout << "Time step: " << time_step << "\n";
-  std::cout << "Number of grid: " << nx << "x" << ny << "x" << nz << " : "
-            << nx * ny * nz << "\n";
   std::cout << "Type: " << typeToString(type) << "\n";
-
-  auto start_time = std::chrono::high_resolution_clock::now();
 
   auto s_hd = xfdtd::cuda::SimulationHD{&s};
   s_hd.setGridDim(grid_dim);
@@ -202,17 +237,5 @@ int main(int argc, char** argv) {
     }
   }
 
-  auto end_time = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::milli> time_span = end_time - start_time;
-  std::cout << "Total elapsed time: " << time_span.count() << " ms\n";
-  std::cout << "Total elapsed time: " << time_span.count() / 1000 << " s\n";
-  std::cout << "Total number of grid: "
-            << s.gridSpace()->sizeX() * s.gridSpace()->sizeY() *
-                   s.gridSpace()->sizeZ()
-            << "\n";
-  std::cout << "Per second for grid: "
-            << time_step * s.gridSpace()->sizeX() * s.gridSpace()->sizeY() *
-                   s.gridSpace()->sizeZ() / (time_span.count() / 1000)
-            << "\n";
   return 0;
 }
