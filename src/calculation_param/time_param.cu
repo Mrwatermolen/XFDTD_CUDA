@@ -10,7 +10,7 @@ XFDTD_CUDA_DUAL TimeParam::TimeParam(Real dt, Index start_time_step, Index size,
       _size{size},
       _current_time_step{current_time_step} {}
 
-XFDTD_CUDA_DUAL auto TimeParam::eTime() const -> Tensor<double, 1> {
+XFDTD_CUDA_DUAL auto TimeParam::eTime() const -> Tensor<Real, 1> {
   auto interval = dt();
   auto e_time = Tensor<Real, 1>::from_shape({size()});
   for (Index i = 0; i < _size; ++i) {
@@ -20,7 +20,7 @@ XFDTD_CUDA_DUAL auto TimeParam::eTime() const -> Tensor<double, 1> {
   return e_time;
 }
 
-XFDTD_CUDA_DUAL auto TimeParam::hTime() const -> Tensor<double, 1> {
+XFDTD_CUDA_DUAL auto TimeParam::hTime() const -> Tensor<Real, 1> {
   auto interval = dt();
   auto h_time = Tensor<Real, 1>::from_shape({size()});
   for (Index i = 0; i < _size; ++i) {

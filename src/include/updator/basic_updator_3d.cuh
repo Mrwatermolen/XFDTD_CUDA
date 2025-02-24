@@ -1,6 +1,8 @@
 #ifndef __XFDTD_CUDA_BASIC_UPDATOR_3D_CUH__
 #define __XFDTD_CUDA_BASIC_UPDATOR_3D_CUH__
 
+#include <xfdtd/common/type_define.h>
+
 #include <xfdtd_cuda/index_task.cuh>
 
 namespace xfdtd::cuda {
@@ -32,6 +34,16 @@ class BasicUpdator3D {
                                               Index size_x, Index size_y,
                                               Index size_z) -> IndexTask {
     auto [id_x, id_y, id_z] = columnMajorToRowMajor(id, size_x, size_y, size_z);
+    auto x_range = decomposeRange(task.xRange(), id_x, size_x);
+    auto y_range = decomposeRange(task.yRange(), id_y, size_y);
+    auto z_range = decomposeRange(task.zRange(), id_z, size_z);
+    return {x_range, y_range, z_range};
+  }
+
+  XFDTD_CUDA_DEVICE static auto decomposeTask(IndexTask task, Index id_x,
+                                              Index id_y, Index id_z,
+                                              Index size_x, Index size_y,
+                                              Index size_z) -> IndexTask {
     auto x_range = decomposeRange(task.xRange(), id_x, size_x);
     auto y_range = decomposeRange(task.yRange(), id_y, size_y);
     auto z_range = decomposeRange(task.zRange(), id_z, size_z);

@@ -82,6 +82,8 @@ XFDTD_CUDA_DEVICE auto BasicUpdator3D::task() const -> IndexTask {
   auto id =
       blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y;
   auto block_task = decomposeTask(node_task, id, size_x, size_y, size_z);
+  // auto block_task = decomposeTask(node_task, blockIdx.x, blockIdx.y,
+  // blockIdx.z, size_x, size_y, size_z);
   // thread
   size_x = static_cast<Index>(blockDim.x);
   size_y = static_cast<Index>(blockDim.y);
@@ -90,6 +92,8 @@ XFDTD_CUDA_DEVICE auto BasicUpdator3D::task() const -> IndexTask {
        threadIdx.z * blockDim.x * blockDim.y;
 
   auto thread_task = decomposeTask(block_task, id, size_x, size_y, size_z);
+  // auto thread_task = decomposeTask(block_task, threadIdx.x, threadIdx.y,
+  //  threadIdx.z, size_x, size_y, size_z);
   return thread_task;
 }
 

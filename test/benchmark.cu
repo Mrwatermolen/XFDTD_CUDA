@@ -1,5 +1,6 @@
 #include <xfdtd/boundary/pml.h>
 #include <xfdtd/common/constant.h>
+#include <xfdtd/common/type_define.h>
 #include <xfdtd/coordinate_system/coordinate_system.h>
 #include <xfdtd/material/material.h>
 #include <xfdtd/nffft/nffft_frequency_domain.h>
@@ -8,30 +9,12 @@
 #include <xfdtd/simulation/simulation.h>
 #include <xfdtd/waveform_source/tfsf_3d.h>
 
-#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <xfdtd_cuda/simulation/simulation_hd.cuh>
 #include <xtensor/xnpy.hpp>
 
 #include "argparse/argparse.hpp"
-
-static constexpr auto typeToString(int type) {
-  switch (type) {
-    case 0:
-      return "Only Updator";
-    case 1:
-      return "Updator and TFSF";
-    case 2:
-      return "Updator and PML";
-    case 3:
-      return "Updator and TFSF and PML";
-    case 4:
-      return "Updator and TFSF and PML and NF2FF";
-    default:
-      return "Unknown";
-  }
-}
 
 class Visitor : public xfdtd::SimulationFlagVisitor {
  public:
@@ -86,13 +69,9 @@ int main(int argc, char** argv) {
   using namespace std::string_view_literals;
   constexpr auto grid_dim_arg = "--grid_dim"sv;
   constexpr auto block_dim_arg = "--block_dim"sv;
-  constexpr auto delta_l_arg = "--delta_l"sv;
+  constexpr auto number_grid_arg = "--num_grid"sv;
   constexpr auto time_step_arg = "--time_step"sv;
-  constexpr auto type_arg = "--type"sv;
-  constexpr auto type_only_updator = 0;
-  constexpr auto type_updator_and_tfsf = 1;
-  constexpr auto type_updator_and_tfsf_and_pml = 2;
-  constexpr auto type_updator_and_tfsf_and_pml_and_nf2ff = 3;
+
   benchmark_program.add_argument(grid_dim_arg, "-g")
       .help("Grid dimension")
       .nargs(3)
@@ -103,23 +82,19 @@ int main(int argc, char** argv) {
       .nargs(3)
       .default_value(std::vector<int>{8, 8, 8})
       .action([](const std::string& value) { return std::stoi(value); });
-  benchmark_program.add_argument(type_arg, "-t")
-      .help("Benchmark type")
-      .default_value(0)
-      .action([](const std::string& value) { return std::stoi(value); });
-  benchmark_program.add_argument(delta_l_arg, "-d")
-      .help("Delta l")
-      .default_value(2.5e-3)
-      .action([](const std::string& value) { return std::stod(value); });
-  benchmark_program.add_argument(time_step_arg, "-s")
+  benchmark_program.add_argument(number_grid_arg, "-n")
+      .help("The number of grid in one direction")
+      .default_value(64)
+      .scan<'d', int>();
+  benchmark_program.add_argument(time_step_arg, "-t")
       .help("Time step")
-      .default_value(2400)
-      .action([](const std::string& value) { return std::stoi(value); });
+      .default_value(400)
+      .scan<'d', int>();
   try {
     benchmark_program.parse_args(argc, argv);
   } catch (const std::runtime_error& err) {
-    std::cout << err.what() << std::endl;
-    std::cout << benchmark_program;
+    std::cerr << err.what() << '\n';
+    std::cerr << benchmark_program;
     return 1;
   }
   auto grid_dim_vec = benchmark_program.get<std::vector<int>>(grid_dim_arg);
@@ -142,100 +117,36 @@ int main(int argc, char** argv) {
   };
   auto grid_dim = func_to_dim3(grid_dim_vec);
   auto block_dim = func_to_dim3(block_dim_vec);
-  const auto dl = benchmark_program.get<double>(delta_l_arg);
+  const xfdtd::Real dl = 5e-3;
+  const auto n = benchmark_program.get<int>(number_grid_arg);
   const auto time_step = benchmark_program.get<int>(time_step_arg);
-  const auto type = benchmark_program.get<int>(type_arg);
 
-  constexpr auto data_path_str = "./tmp/dielectric_sphere_scatter_cuda"sv;
-  const auto data_path = std::filesystem::path{data_path_str};
-
-  auto x_min = -64 * dl;
-  auto x_max = 64 * dl;
-  auto y_min = -64 * dl;
-  auto y_max = 64 * dl;
-  auto z_min = -64 * dl;
-  auto z_max = 64 * dl;
-  auto x_size = x_max - x_min;
-  auto y_size = y_max - y_min;
-  auto z_size = z_max - z_min;
+  auto x_size = n * dl;
+  auto y_size = x_size;
+  auto z_size = x_size;
+  auto x_min = -x_size / 2;
+  auto y_min = x_min;
+  auto z_min = x_min;
 
   auto domain{std::make_shared<xfdtd::Object>(
       "domain",
-      std::make_unique<xfdtd::Cube>(
-          xfdtd::Vector{x_min, y_min, z_min},
-          xfdtd::Vector{x_max - x_min, y_max - y_min, z_max - z_min}),
+      std::make_unique<xfdtd::Cube>(xfdtd::Vector{x_min, y_min, z_min},
+                                    xfdtd::Vector{x_size, y_size, z_size}),
       xfdtd::Material::createAir())};
-
-  auto nx = static_cast<xfdtd::Index>(x_size / dl);
-  auto ny = static_cast<xfdtd::Index>(y_size / dl);
-  auto nz = static_cast<xfdtd::Index>(z_size / dl);
+  std::cout << "Time steps: " << time_step << '\n';
+  std::cout << "grid Dim: " << grid_dim.x << " " << grid_dim.y << " "
+            << grid_dim.z << "\n";
+  std::cout << "block Dim: " << block_dim.x << " " << block_dim.y << " "
+            << block_dim.z << "\n";
 
   auto s{xfdtd::Simulation{dl, dl, dl, 0.9, xfdtd::ThreadConfig{1, 1, 1}}};
   s.addObject(domain);
   s.addVisitor(std::make_shared<Visitor>(s));
 
-  if (4 <= type) {
-    constexpr std::size_t nffft_start{static_cast<size_t>(11)};
-    auto nffft_fd{std::make_shared<xfdtd::NFFFTFrequencyDomain>(
-        nffft_start, nffft_start, nffft_start, xt::xarray<double>{1e9},
-        (data_path / "fd").string())};
-    s.addNF2FF(nffft_fd);
-  }
-  if (2 == type || 4 == type || 3 == type) {
-    s.addBoundary(std::make_shared<xfdtd::PML>(8, xfdtd::Axis::Direction::XN));
-    s.addBoundary(std::make_shared<xfdtd::PML>(8, xfdtd::Axis::Direction::XP));
-    s.addBoundary(std::make_shared<xfdtd::PML>(8, xfdtd::Axis::Direction::YN));
-    s.addBoundary(std::make_shared<xfdtd::PML>(8, xfdtd::Axis::Direction::YP));
-    s.addBoundary(std::make_shared<xfdtd::PML>(8, xfdtd::Axis::Direction::ZN));
-    s.addBoundary(std::make_shared<xfdtd::PML>(8, xfdtd::Axis::Direction::ZP));
-    nx += 16;
-    ny += 16;
-    nz += 16;
-  }
-  if (1 == type || 4 == type || 3 == type) {
-    auto l_min{dl * 20};
-    auto tau{l_min / 6e8};
-    auto t_0{4.5 * tau};
-    constexpr std::size_t tfsf_start{static_cast<std::size_t>(15)};
-    auto tfsf{std::make_shared<xfdtd::TFSF3D>(
-        tfsf_start, tfsf_start, tfsf_start, 0, 0, 0,
-        xfdtd::Waveform::gaussian(tau, t_0))};
-    s.addWaveformSource(tfsf);
-  }
-
-  std::cout << "Grid size: (" << grid_dim.x << ", " << grid_dim.y << ", "
-            << grid_dim.z << "), Block size: (" << block_dim.x << ", "
-            << block_dim.y << ", " << block_dim.z << ")\n";
-  std::cout << "Type: " << typeToString(type) << "\n";
-
   auto s_hd = xfdtd::cuda::SimulationHD{&s};
   s_hd.setGridDim(grid_dim);
   s_hd.setBlockDim(block_dim);
   s_hd.run(time_step);
-
-  if (4 <= type) {
-    auto nffft_fd = std::dynamic_pointer_cast<xfdtd::NFFFTFrequencyDomain>(
-        s.nf2ffs().front());
-    if (nffft_fd == nullptr) {
-      std::cerr << "Failed to cast NFFFTFrequencyDomain\n";
-    } else {
-      auto tfsf =
-          std::dynamic_pointer_cast<xfdtd::TFSF3D>(s.waveformSources().front());
-      if (tfsf == nullptr) {
-        std::cerr << "Failed to cast TFSF3D\n";
-      } else {
-        auto time = tfsf->waveform()->time();
-        auto incident_wave_data = tfsf->waveform()->value();
-        xt::dump_npy((data_path / "time.npy").string(), time);
-        xt::dump_npy((data_path / "incident_wave.npy").string(),
-                     incident_wave_data);
-      }
-
-      nffft_fd->processFarField(
-          xt::linspace<double>(-xfdtd::constant::PI, xfdtd::constant::PI, 360),
-          0, "xz");
-    }
-  }
 
   return 0;
 }

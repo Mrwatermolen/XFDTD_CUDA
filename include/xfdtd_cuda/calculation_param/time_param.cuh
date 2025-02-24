@@ -37,12 +37,12 @@ class TimeParam {
   /**
    * @brief [1,2,3,...,size] * dt
    */
-  XFDTD_CUDA_DUAL auto eTime() const -> Tensor<double, 1>;
+  XFDTD_CUDA_DUAL auto eTime() const -> Tensor<Real, 1>;
 
   /**
    * @brief [0.5,1.5,2.5,...,size-0.5] * dt
    */
-  XFDTD_CUDA_DUAL auto hTime() const -> Tensor<double, 1>;
+  XFDTD_CUDA_DUAL auto hTime() const -> Tensor<Real, 1>;
 
  private:
   Real _dt{};
