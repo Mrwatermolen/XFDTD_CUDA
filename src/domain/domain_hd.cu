@@ -1,4 +1,5 @@
 #include <xfdtd/calculation_param/time_param.h>
+#include <xfdtd/simulation/simulation_flag.h>
 
 #include <memory>
 #include <vector>
@@ -32,6 +33,7 @@ DomainHD::DomainHD(dim3 grid_dim, dim3 block_dim,
 DomainHD::~DomainHD() = default;
 
 auto DomainHD::run() -> void {
+  sendInitFlag(SimulationInitFlag::UpdateStart);
   while (!isCalculationDone()) {
     updateH();
     correctH();
@@ -41,6 +43,7 @@ auto DomainHD::run() -> void {
     nextStep();
   }
   cudaDeviceSynchronize();
+  sendInitFlag(SimulationInitFlag::UpdateEnd);
 }
 
 auto DomainHD::updateH() -> void { _updator->updateH(_grid_dim, _block_dim); }
@@ -98,6 +101,17 @@ auto DomainHD::addNF2FFFrequencyDomainAgency(NF2FFFrequencyDomainAgency* agency)
 
 auto DomainHD::addNF2FFTimeDoaminAgency(NF2FFTimeDoaminAgency* agency) -> void {
   _nf2ff_time_agencies.push_back(agency);
+}
+
+auto DomainHD::addSimulationFlagVisitor(
+    std::shared_ptr<SimulationFlagVisitor> visitor) -> void {
+  _simulation_flag_visitors.emplace_back(std::move(visitor));
+}
+
+auto DomainHD::sendInitFlag(SimulationInitFlag flag) -> void {
+  for (auto&& visitor : _simulation_flag_visitors) {
+    visitor->initStep(flag);
+  }
 }
 
 }  // namespace xfdtd::cuda

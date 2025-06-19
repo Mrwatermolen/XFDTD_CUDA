@@ -5,9 +5,10 @@
 
 namespace xfdtd::cuda {
 
-template <typename Host, typename Device> class HostDeviceCarrier {
-public:
-  HostDeviceCarrier(Host *host) : _host{host}, _device{nullptr} {}
+template <typename Host, typename Device>
+class HostDeviceCarrier {
+ public:
+  explicit HostDeviceCarrier(Host *host) : _host{host} {}
 
   HostDeviceCarrier(const HostDeviceCarrier &) = delete;
 
@@ -45,7 +46,7 @@ public:
 
   virtual auto releaseDevice() -> void = 0;
 
-protected:
+ protected:
   auto releaseBaseDevice() -> void {
     if (_device != nullptr) {
       XFDTD_CORE_CUDA_CHECK_CUDA_ERROR(cudaFree(_device));
@@ -75,11 +76,11 @@ protected:
         cudaMemcpy(data, _device, sizeof(Device), cudaMemcpyDeviceToHost));
   }
 
-private:
+ private:
   Host *_host;
-  Device *_device;
+  Device *_device{};
 };
 
-} // namespace xfdtd::cuda
+}  // namespace xfdtd::cuda
 
-#endif // __XFDTD_CUDA_HOST_DEVICE_CARRIER_CUH__
+#endif  // __XFDTD_CUDA_HOST_DEVICE_CARRIER_CUH__

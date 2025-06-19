@@ -62,6 +62,12 @@ public:
 
   auto hostData() const { return _host_data; }
 
+  auto deviceData() { return _device_data; }
+
+  auto deviceData() const { return _device_data; }
+
+  auto shape() const { return _shape; }
+
   /**
    * @brief Reset host data. It doesn't free previous host data and copy data to
    * device. The only thing it does is to change the host data pointer.

@@ -8,6 +8,8 @@
 #include <vector>
 #include <xfdtd_cuda/host_device_carrier.cuh>
 
+#include "xfdtd_cuda/index_task.cuh"
+
 namespace xfdtd {
 
 class Simulation;
@@ -19,6 +21,7 @@ namespace xfdtd::cuda {
 class GridSpaceHD;
 class CalculationParamHD;
 class EMFHD;
+class DomainHD;
 class TFSFCorrectorHD;
 
 template <xfdtd::Axis::XYZ xyz>
@@ -27,9 +30,13 @@ class PMLCorrectorHD;
 class NF2FFFrequencyDomainHD;
 class NF2FFTimeDomainHD;
 
+class BasicUpdatorHD;
+class ADEUpdatorHD;
+class ADEMethodStorageHD;
+
 class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
  public:
-  SimulationHD(xfdtd::Simulation* host);
+  explicit SimulationHD(xfdtd::Simulation* host);
 
   ~SimulationHD() override;
 
@@ -51,9 +58,11 @@ class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
   dim3 _grid_dim{1, 1, 1};
   dim3 _block_dim{1, 1, 1};
 
-  std::shared_ptr<GridSpaceHD> _grid_space_hd{};
-  std::shared_ptr<CalculationParamHD> _calculation_param_hd{};
-  std::shared_ptr<EMFHD> _emf_hd{};
+  std::shared_ptr<GridSpaceHD> _grid_space_hd;
+  std::shared_ptr<CalculationParamHD> _calculation_param_hd;
+  std::shared_ptr<EMFHD> _emf_hd;
+
+  std::shared_ptr<ADEMethodStorageHD> _ade_method_storage_hd;
 
   auto addTFSFCorrectorHD(
       std::vector<std::unique_ptr<TFSFCorrectorHD>>& tfsf_hd) -> void;
@@ -62,9 +71,20 @@ class SimulationHD : public HostDeviceCarrier<xfdtd::Simulation, void> {
   auto addPMLBoundaryHD(std::vector<std::unique_ptr<PMLCorrectorHD<xyz>>>&
                             pml_corrector_hd) -> void;
 
-  auto getNF2FFFD()-> std::vector<std::unique_ptr<NF2FFFrequencyDomainHD>>;
+  auto getNF2FFFD() -> std::vector<std::unique_ptr<NF2FFFrequencyDomainHD>>;
 
   auto getNF2FFTD() -> std::vector<std::unique_ptr<NF2FFTimeDomainHD>>;
+
+  auto makeDomainHD(IndexTask task,
+                    std::unique_ptr<ADEUpdatorHD>& ade_updator_hd,
+                    std::unique_ptr<BasicUpdatorHD>& basic_updator_hd)
+      -> std::unique_ptr<DomainHD>;
+
+  auto makeBasicUpdatorHD(IndexTask task) -> std::unique_ptr<BasicUpdatorHD>;
+
+  auto makeADEUpdatorHD(IndexTask task) -> std::unique_ptr<ADEUpdatorHD>;
+
+  auto makeADEMethodStorageHD() -> std::unique_ptr<ADEMethodStorageHD>;
 };
 };  // namespace xfdtd::cuda
 

@@ -1,5 +1,5 @@
-#ifndef __XFDTD_CUDA_UPDATOR_HD_CUH__
-#define __XFDTD_CUDA_UPDATOR_HD_CUH__
+#ifndef __XFDTD_CUDA_UPDATOR_AGENCY_CUH__
+#define __XFDTD_CUDA_UPDATOR_AGENCY_CUH__
 
 namespace xfdtd::cuda {
 
@@ -14,4 +14,4 @@ class UpdatorAgency {
 
 }  // namespace xfdtd::cuda
 
-#endif  // __XFDTD_CUDA_UPDATOR_HD_CUH__
+#endif  // __XFDTD_CUDA_UPDATOR_AGENCY_CUH__

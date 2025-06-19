@@ -3,25 +3,6 @@
 
 namespace xfdtd::cuda {
 
-XFDTD_CUDA_DEVICE auto TFSFCorrector::task() const {
-  const auto& total_task = _total_task;
-  // blcok
-  auto size_x = static_cast<Index>(gridDim.x);
-  auto size_y = static_cast<Index>(gridDim.y);
-  auto size_z = static_cast<Index>(gridDim.z);
-  auto id =
-      blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y;
-  auto block_task = decomposeTask(total_task, id, size_x, size_y, size_z);
-  // thread
-  size_x = static_cast<Index>(blockDim.x);
-  size_y = static_cast<Index>(blockDim.y);
-  size_z = static_cast<Index>(blockDim.z);
-  id = threadIdx.x + threadIdx.y * blockDim.x +
-       threadIdx.z * blockDim.x * blockDim.y;
-  auto thread_task = decomposeTask(block_task, id, size_x, size_y, size_z);
-  return thread_task;
-}
-
 XFDTD_CUDA_DEVICE auto TFSFCorrector::globalStartI() const -> Index {
   return _total_task.xRange().start();
 }
@@ -167,29 +148,44 @@ XFDTD_CUDA_DEVICE auto TFSFCorrector::emf() -> EMF* { return _emf; }
 template <xfdtd::Axis::Direction Direction, xfdtd::EMF::Attribute Attribute,
           xfdtd::Axis::XYZ Axis>
 XFDTD_CUDA_GLOBAL auto __tFSFcorrect(TFSFCorrector* device) -> void {
-  device->correctTFSF<Direction, Attribute, Axis>(device->task(), 0, 0, 0);
+  device->correctTFSF<Direction, Attribute, Axis>(device->task<Direction>(), 0,
+                                                  0, 0);
 }
 
 auto TFSFCorrector2DAgency::correctE(dim3 grid_size, dim3 block_size) -> void {
+  auto grid_dim_x = dim3{1, grid_size.y, grid_size.z};
+  auto grid_dim_y = dim3{grid_size.x, 1, grid_size.z};
+  auto grid_dim_z = dim3{grid_size.x, grid_size.y, 1};
+  auto block_dim_x = dim3{1, block_size.y, block_size.z};
+  auto block_dim_y = dim3{block_size.x, 1, block_size.z};
+  auto block_dim_z = dim3{block_size.x, block_size.y, 1};
+
   __tFSFcorrect<Axis::Direction::XN, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::XP, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::YN, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_y, block_dim_y>>>(device());
   __tFSFcorrect<Axis::Direction::YP, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_y, block_dim_y>>>(device());
 }
 
 auto TFSFCorrector2DAgency::correctH(dim3 grid_size, dim3 block_size) -> void {
+  auto grid_dim_x = dim3{1, grid_size.y, grid_size.z};
+  auto grid_dim_y = dim3{grid_size.x, 1, grid_size.z};
+  auto grid_dim_z = dim3{grid_size.x, grid_size.y, 1};
+  auto block_dim_x = dim3{1, block_size.y, block_size.z};
+  auto block_dim_y = dim3{block_size.x, 1, block_size.z};
+  auto block_dim_z = dim3{block_size.x, block_size.y, 1};
+
   __tFSFcorrect<Axis::Direction::XN, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::XP, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::YN, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_y, block_dim_y>>>(device());
   __tFSFcorrect<Axis::Direction::YP, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_y, block_dim_y>>>(device());
 }
 
 auto TFSFCorrectorAgency::device() -> TFSFCorrector* { return _device; }
@@ -203,61 +199,75 @@ auto TFSFCorrectorAgency::setDevice(TFSFCorrector* device) -> void {
 }
 
 auto TFSFCorrector3DAgency::correctE(dim3 grid_size, dim3 block_size) -> void {
+  auto grid_dim_x = dim3{1, grid_size.y, grid_size.z};
+  auto grid_dim_y = dim3{grid_size.x, 1, grid_size.z};
+  auto grid_dim_z = dim3{grid_size.x, grid_size.y, 1};
+  auto block_dim_x = dim3{1, block_size.y, block_size.z};
+  auto block_dim_y = dim3{block_size.x, 1, block_size.z};
+  auto block_dim_z = dim3{block_size.x, block_size.y, 1};
+
   __tFSFcorrect<Axis::Direction::XN, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::XP, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::YN, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_y, block_dim_y>>>(device());
   __tFSFcorrect<Axis::Direction::YP, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_y, block_dim_y>>>(device());
 
   __tFSFcorrect<Axis::Direction::ZN, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_z, block_dim_z>>>(device());
   __tFSFcorrect<Axis::Direction::ZP, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_z, block_dim_z>>>(device());
   __tFSFcorrect<Axis::Direction::YN, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_y, block_dim_y>>>(device());
   __tFSFcorrect<Axis::Direction::YP, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_y, block_dim_y>>>(device());
 
   __tFSFcorrect<Axis::Direction::ZN, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_z, block_dim_z>>>(device());
   __tFSFcorrect<Axis::Direction::ZP, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_z, block_dim_z>>>(device());
   __tFSFcorrect<Axis::Direction::XN, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::XP, xfdtd::EMF::Attribute::E,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_x, block_dim_x>>>(device());
 }
 
 auto TFSFCorrector3DAgency::correctH(dim3 grid_size, dim3 block_size) -> void {
+  auto grid_dim_x = dim3{1, grid_size.y, grid_size.z};
+  auto grid_dim_y = dim3{grid_size.x, 1, grid_size.z};
+  auto grid_dim_z = dim3{grid_size.x, grid_size.y, 1};
+  auto block_dim_x = dim3{1, block_size.y, block_size.z};
+  auto block_dim_y = dim3{block_size.x, 1, block_size.z};
+  auto block_dim_z = dim3{block_size.x, block_size.y, 1};
+
   __tFSFcorrect<Axis::Direction::XN, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::XP, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::YN, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_y, block_dim_y>>>(device());
   __tFSFcorrect<Axis::Direction::YP, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Z><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Z><<<grid_dim_y, block_dim_y>>>(device());
 
   __tFSFcorrect<Axis::Direction::ZN, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_z, block_dim_z>>>(device());
   __tFSFcorrect<Axis::Direction::ZP, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_z, block_dim_z>>>(device());
   __tFSFcorrect<Axis::Direction::YN, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_y, block_dim_y>>>(device());
   __tFSFcorrect<Axis::Direction::YP, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::X><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::X><<<grid_dim_y, block_dim_y>>>(device());
 
   __tFSFcorrect<Axis::Direction::ZN, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_z, block_dim_z>>>(device());
   __tFSFcorrect<Axis::Direction::ZP, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_z, block_dim_z>>>(device());
   __tFSFcorrect<Axis::Direction::XN, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_x, block_dim_x>>>(device());
   __tFSFcorrect<Axis::Direction::XP, xfdtd::EMF::Attribute::H,
-                xfdtd::Axis::XYZ::Y><<<grid_size, block_size>>>(device());
+                xfdtd::Axis::XYZ::Y><<<grid_dim_x, block_dim_x>>>(device());
 }
 
 }  // namespace xfdtd::cuda

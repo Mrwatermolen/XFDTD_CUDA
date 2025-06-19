@@ -5,9 +5,7 @@
 
 #include <xfdtd_cuda/common.cuh>
 
-namespace xfdtd {
-
-namespace cuda {
+namespace xfdtd::cuda {
 
 class TimeParam {
   friend class TimeParamHD;
@@ -37,12 +35,12 @@ class TimeParam {
   /**
    * @brief [1,2,3,...,size] * dt
    */
-  XFDTD_CUDA_DUAL auto eTime() const -> Tensor<double, 1>;
+  XFDTD_CUDA_DUAL auto eTime() const -> Tensor<Real, 1>;
 
   /**
    * @brief [0.5,1.5,2.5,...,size-0.5] * dt
    */
-  XFDTD_CUDA_DUAL auto hTime() const -> Tensor<double, 1>;
+  XFDTD_CUDA_DUAL auto hTime() const -> Tensor<Real, 1>;
 
  private:
   Real _dt{};
@@ -51,8 +49,6 @@ class TimeParam {
 
 XFDTD_CUDA_GLOBAL auto __kernelCheckTimeParam(TimeParam *time_param) -> void;
 
-}  // namespace cuda
-
-}  // namespace xfdtd
+}  // namespace xfdtd::cuda
 
 #endif  // __XFDTD_CUDA_TIME_PARAM_CUH__

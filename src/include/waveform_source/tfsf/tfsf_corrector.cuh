@@ -25,6 +25,21 @@ class TFSFCorrector {
       return;
     }
 
+    // static bool first = true;
+    // if (first) {
+    //   first = false;
+    //   printf(
+    //       "correctTFSF: direction: %d, attribute: %d, field_xyz: %d, Block: "
+    //       "(%d, %d, %d), Thread: (%d, %d, %d), Task: (%lu, %lu, %lu), (%lu, "
+    //       "%lu, %lu)\n",
+    //       static_cast<int>(direction), static_cast<int>(attribute),
+    //       static_cast<int>(field_xyz), blockIdx.x, blockIdx.y, blockIdx.z,
+    //       threadIdx.x, threadIdx.y, threadIdx.z, task.xRange().start(),
+    //       task.yRange().start(), task.zRange().start(), task.xRange().end(),
+    //       task.yRange().end(), task.zRange().end());
+    //   __syncthreads();
+    // }
+
     constexpr auto xyz = Axis::fromDirectionToXYZ<direction>();
     constexpr auto dual_xyz_a = Axis::tangentialAAxis<xyz>();
     constexpr auto dual_xyz_b = Axis::tangentialBAxis<xyz>();
@@ -63,19 +78,6 @@ class TFSFCorrector {
     if constexpr (offset_b == 1) {
       if (be == getEnd<dual_xyz_b>()) {
         be += offset_b;
-      }
-    }
-
-    cs = (Axis::directionNegative<direction>()) ? cs : ce;
-    ce = cs + 1;
-
-    if constexpr (Axis::directionNegative<direction>()) {
-      if (cs != getStart<xyz>()) {
-        return;
-      }
-    } else {
-      if (cs != getEnd<xyz>()) {
-        return;
       }
     }
 
@@ -231,7 +233,66 @@ class TFSFCorrector {
     }
   }
 
-  XFDTD_CUDA_DEVICE auto task() const;
+  template <xfdtd::Axis::Direction direction>
+  XFDTD_CUDA_DEVICE auto buildTask() const {
+    const auto& total_task = _total_task;
+
+    if constexpr (direction == xfdtd::Axis::Direction::XN) {
+      return makeTask(makeRange(total_task.xRange().start(),
+                                total_task.xRange().start() + 1),
+                      total_task.yRange(), total_task.zRange());
+    } else if constexpr (direction == xfdtd::Axis::Direction::XP) {
+      return makeTask(
+          makeRange(total_task.xRange().end(), total_task.xRange().end() + 1),
+          total_task.yRange(), total_task.zRange());
+    } else if constexpr (direction == xfdtd::Axis::Direction::YN) {
+      return makeTask(total_task.xRange(),
+                      makeRange(total_task.yRange().start(),
+                                total_task.yRange().start() + 1),
+                      total_task.zRange());
+    } else if constexpr (direction == xfdtd::Axis::Direction::YP) {
+      return makeTask(
+          total_task.xRange(),
+          makeRange(total_task.yRange().end(), total_task.yRange().end() + 1),
+          total_task.zRange());
+    } else if constexpr (direction == xfdtd::Axis::Direction::ZN) {
+      return makeTask(total_task.xRange(), total_task.yRange(),
+                      makeRange(total_task.zRange().start(),
+                                total_task.zRange().start() + 1));
+    } else if constexpr (direction == xfdtd::Axis::Direction::ZP) {
+      return makeTask(
+          total_task.xRange(), total_task.yRange(),
+          makeRange(total_task.zRange().end(), total_task.zRange().end() + 1));
+    } else {
+      static_assert(direction == xfdtd::Axis::Direction::XN ||
+                        direction == xfdtd::Axis::Direction::XP ||
+                        direction == xfdtd::Axis::Direction::YN ||
+                        direction == xfdtd::Axis::Direction::YP ||
+                        direction == xfdtd::Axis::Direction::ZN ||
+                        direction == xfdtd::Axis::Direction::ZP,
+                    "Direction error");
+    }
+  }
+
+  template <xfdtd::Axis::Direction direction>
+  XFDTD_CUDA_DEVICE auto task() const {
+    const auto& total_task = buildTask<direction>();
+    // blcok
+    auto size_x = static_cast<Index>(gridDim.x);
+    auto size_y = static_cast<Index>(gridDim.y);
+    auto size_z = static_cast<Index>(gridDim.z);
+    auto id = blockIdx.x + blockIdx.y * gridDim.x +
+              blockIdx.z * gridDim.x * gridDim.y;
+    auto block_task = decomposeTask(total_task, id, size_x, size_y, size_z);
+    // thread
+    size_x = static_cast<Index>(blockDim.x);
+    size_y = static_cast<Index>(blockDim.y);
+    size_z = static_cast<Index>(blockDim.z);
+    id = threadIdx.x + threadIdx.y * blockDim.x +
+         threadIdx.z * blockDim.x * blockDim.y;
+    auto thread_task = decomposeTask(block_task, id, size_x, size_y, size_z);
+    return thread_task;
+  }
 
   XFDTD_CUDA_DEVICE auto globalStartI() const -> Index;
 

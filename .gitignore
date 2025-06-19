@@ -1,7 +1,11 @@
 .DS_Store
 .vscode
-.vs
 .idea
 build
 tmp
 __pycache__
+
+## Visual Studio
+.vs
+out/
+CMakeSettings.json

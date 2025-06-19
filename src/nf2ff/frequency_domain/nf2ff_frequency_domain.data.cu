@@ -216,12 +216,19 @@ NF2FFFrequencyDomainAgency::NF2FFFrequencyDomainAgency(
       _data_zp{data_zp} {}
 
 auto NF2FFFrequencyDomainAgency::update(dim3 grid_dim, dim3 block_dim) -> void {
-  __nF2FFFrequencyDomainUpdate<<<grid_dim, block_dim>>>(_data_xn);
-  __nF2FFFrequencyDomainUpdate<<<grid_dim, block_dim>>>(_data_xp);
-  __nF2FFFrequencyDomainUpdate<<<grid_dim, block_dim>>>(_data_yn);
-  __nF2FFFrequencyDomainUpdate<<<grid_dim, block_dim>>>(_data_yp);
-  __nF2FFFrequencyDomainUpdate<<<grid_dim, block_dim>>>(_data_zn);
-  __nF2FFFrequencyDomainUpdate<<<grid_dim, block_dim>>>(_data_zp);
+  auto grid_dim_x = dim3{1, grid_dim.y, grid_dim.z};
+  auto grid_dim_y = dim3{grid_dim.x, 1, grid_dim.z};
+  auto grid_dim_z = dim3{grid_dim.x, grid_dim.y, 1};
+  auto block_dim_x = dim3{1, block_dim.y, block_dim.z};
+  auto block_dim_y = dim3{block_dim.x, 1, block_dim.z};
+  auto block_dim_z = dim3{block_dim.x, block_dim.y, 1};
+
+  __nF2FFFrequencyDomainUpdate<<<grid_dim_x, block_dim_x>>>(_data_xn);
+  __nF2FFFrequencyDomainUpdate<<<grid_dim_x, block_dim_x>>>(_data_xp);
+  __nF2FFFrequencyDomainUpdate<<<grid_dim_y, block_dim_y>>>(_data_yn);
+  __nF2FFFrequencyDomainUpdate<<<grid_dim_y, block_dim_y>>>(_data_yp);
+  __nF2FFFrequencyDomainUpdate<<<grid_dim_z, block_dim_z>>>(_data_zn);
+  __nF2FFFrequencyDomainUpdate<<<grid_dim_z, block_dim_z>>>(_data_zp);
 }
 
 // explicit instantiation

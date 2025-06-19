@@ -3,9 +3,11 @@
 #include <iomanip>
 #include <sstream>
 #include <xfdtd_cuda/tensor.cuh>
+#ifndef XFDTD_CUDA_CXX_MSVC
 #include <xtensor/xcsv.hpp>
 #include <xtensor/xnpy.hpp>
 #include <xtensor/xview.hpp>
+#endif
 
 #include "monitor/movie_monitor.cuh"
 #include "monitor/movie_monitor_agency.cuh"
@@ -84,11 +86,12 @@ XFDTD_CUDA_HOST auto MovieMonitor<F>::output(std::string_view path_dir) const
 
   for (Index t = 0; t < data()->shape()[0]; ++t) {
     auto file = out_dir / formatFrameCount(t);
+#ifndef XFDTD_CUDA_CXX_MSVC
     xt::dump_npy(file.string() + ".npy",
                  xt::view(xtensor_data, t, xt::all(), xt::all(), xt::all()));
-    // auto file_stream = std::ofstream(file.string() + ".csv");
-    // xt::dump_csv(file_stream,
-    //              xt::view(xtensor_data, t, xt::all(), xt::all(), 0));
+#else
+    throw std::runtime_error{"Can't use view in msvc"};
+#endif
   }
 }
 
